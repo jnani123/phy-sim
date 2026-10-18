@@ -1,0 +1,33 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import url("https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css");
+@import url("./simulation-shell.css?v=20261017-1");
+
+body.jnani-simulation {
+  font-family: Inter, sans-serif;
+}
+
+.jnani-simulation .font-mono-num {
+  font-family: "JetBrains Mono", monospace;
+}
+
+.jnani-simulation ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.jnani-simulation ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.jnani-simulation ::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: #334155;
+}
+
+.jnani-simulation ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.jnani-simulation .katex {
+  font-size: 1.05em;
+}

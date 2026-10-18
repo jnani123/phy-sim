@@ -1,0 +1,734 @@
+:root {
+  --jnani-sim-bg: #020617;
+  --jnani-sim-panel: #0f172a;
+  --jnani-sim-panel-soft: #1e293b;
+  --jnani-sim-border: #334155;
+  --jnani-sim-text: #e2e8f0;
+  --jnani-sim-muted: #94a3b8;
+  --jnani-sim-accent: #22c55e;
+  --jnani-sim-cyan: #38bdf8;
+  --jnani-sim-gold: #f59e0b;
+  --jnani-sim-violet: #a78bfa;
+  --jnani-sim-font: Inter, sans-serif;
+  --jnani-sim-mono: "JetBrains Mono", monospace;
+  --jnani-sim-header-height: 60px;
+  --jnani-sim-header-inline-padding: 24px;
+  --jnani-sim-panel-ratio-canvas: 55fr;
+  --jnani-sim-panel-ratio-learning: 45fr;
+  --jnani-sim-toolbar-height: 49px;
+  --jnani-sim-tab-height: 49px;
+  --jnani-sim-content-padding: 24px;
+  --jnani-sim-space-xs: 4px;
+  --jnani-sim-space-sm: 8px;
+  --jnani-sim-space-md: 12px;
+  --jnani-sim-space-lg: 16px;
+  --jnani-sim-space-xl: 24px;
+  --jnani-sim-radius-sm: 6px;
+  --jnani-sim-radius-md: 8px;
+  --jnani-sim-font-xs: 11px;
+  --jnani-sim-font-sm: 12px;
+  --jnani-sim-font-body: 14px;
+  --jnani-sim-font-title: 18px;
+  --jnani-sim-font-question: 16px;
+  --jnani-sim-font-equation: clamp(16px, 1.35vw, 19px);
+  --jnani-sim-line-question: 1.75;
+}
+
+body.jnani-simulation {
+  display: flex;
+  height: 100dvh;
+  min-height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  color-scheme: dark;
+  background: var(--jnani-sim-bg);
+  color: var(--jnani-sim-text);
+  font-family: var(--jnani-sim-font);
+}
+
+.jnani-simulation #simulation-shell-root {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.jnani-simulation .jnani-sim-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: var(--jnani-sim-header-height);
+  padding: 10px var(--jnani-sim-header-inline-padding);
+  border-bottom: 1px solid #1e293b;
+  background: var(--jnani-sim-panel);
+}
+
+.jnani-simulation .jnani-sim-brand-mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--jnani-sim-accent);
+  color: #020617;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.jnani-simulation .jnani-sim-header-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 16px;
+}
+
+.jnani-simulation .jnani-sim-brand-name {
+  color: #f8fafc;
+  font-size: var(--jnani-sim-font-title);
+  font-weight: 700;
+  letter-spacing: -.45px;
+  white-space: nowrap;
+}
+
+.jnani-simulation .jnani-sim-breadcrumb {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  border-left: 1px solid #1e293b;
+  padding-left: 16px;
+  color: var(--jnani-sim-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.jnani-simulation .jnani-sim-breadcrumb strong {
+  overflow: hidden;
+  color: #4ade80;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.jnani-simulation .jnani-sim-header-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.jnani-simulation .jnani-sim-metadata {
+  flex: none;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: var(--jnani-sim-panel-soft);
+  padding: 6px 12px;
+  color: #cbd5e1;
+  font: var(--jnani-sim-font-sm) var(--jnani-sim-mono);
+  white-space: nowrap;
+}
+
+.jnani-simulation .jnani-sim-header-button {
+  flex: none;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: var(--jnani-sim-panel-soft);
+  padding: 6px 12px;
+  color: var(--jnani-sim-text);
+  font-size: var(--jnani-sim-font-sm);
+  font-weight: 600;
+}
+
+.jnani-simulation .jnani-sim-header-button.primary {
+  border-color: var(--jnani-sim-accent);
+  background: var(--jnani-sim-accent);
+  color: #020617;
+}
+
+.jnani-simulation .jnani-sim-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.jnani-simulation .jnani-sim-canvas-panel {
+  position: relative;
+  display: flex;
+  flex: 0 0 55%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid #1e293b;
+  background: var(--jnani-sim-bg);
+  padding: 0;
+}
+
+.jnani-simulation .jnani-sim-learning-panel {
+  display: flex;
+  flex: 0 0 45%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--jnani-sim-panel);
+}
+
+.jnani-simulation .jnani-sim-canvas-panel > [data-shell-visualization] {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.jnani-simulation .jnani-sim-canvas-panel > [data-shell-visualization] > * {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  .jnani-simulation .jnani-sim-layout {
+    display: grid;
+    grid-template-columns: minmax(0, var(--jnani-sim-panel-ratio-canvas)) minmax(0, var(--jnani-sim-panel-ratio-learning));
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .jnani-simulation .jnani-sim-canvas-panel,
+  .jnani-simulation .jnani-sim-learning-panel {
+    width: auto;
+    height: 100%;
+    flex: none;
+  }
+}
+
+.jnani-simulation .jnani-sim-canvas-toolbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  min-height: var(--jnani-sim-toolbar-height);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #1e293b;
+  background: rgb(15 23 42 / 72%);
+  padding: 10px 16px;
+}
+
+.jnani-simulation .jnani-sim-phase-badge {
+  flex: none;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  background: var(--jnani-sim-panel-soft);
+  padding: 6px 10px;
+  color: #4ade80;
+  font: 11px var(--jnani-sim-mono);
+  white-space: nowrap;
+}
+
+.jnani-simulation .jnani-sim-canvas-label {
+  color: #cbd5e1;
+  font-size: var(--jnani-sim-font-sm);
+  font-weight: 600;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+
+.jnani-simulation .jnani-sim-tabs {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid #1e293b;
+  background: rgb(15 23 42 / 90%);
+  font-size: var(--jnani-sim-font-sm);
+  font-weight: 500;
+}
+
+.jnani-simulation .jnani-sim-tabs > button {
+  display: flex;
+  min-width: 0;
+  min-height: var(--jnani-sim-tab-height);
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 11px 5px 9px;
+  color: #94a3b8;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.jnani-simulation .jnani-sim-tabs > button:hover {
+  color: #e2e8f0;
+}
+
+.jnani-simulation .jnani-sim-tabs > button[aria-current="step"] {
+  border-bottom-color: var(--jnani-sim-accent);
+  background: rgb(30 41 59 / 40%);
+  color: #4ade80;
+}
+
+.jnani-simulation .jnani-sim-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--jnani-sim-content-padding);
+  font-size: var(--jnani-sim-font-body);
+  scrollbar-color: #334155 #0f172a;
+  scrollbar-width: thin;
+}
+
+.jnani-simulation .jnani-sim-content-eyebrow,
+.jnani-simulation .jnani-sim-card-label {
+  color: var(--jnani-sim-accent);
+  font-size: var(--jnani-sim-font-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.jnani-simulation .jnani-sim-content-title,
+.jnani-simulation .jnani-sim-step-title {
+  color: var(--jnani-sim-text);
+  font-size: var(--jnani-sim-font-title);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.jnani-simulation .jnani-sim-card {
+  border: 1px solid var(--jnani-sim-border);
+  border-radius: var(--jnani-sim-radius-md);
+  background: var(--jnani-sim-panel-soft);
+  padding: var(--jnani-sim-space-lg);
+}
+
+.jnani-simulation .jnani-sim-question-text,
+.jnani-simulation .jnani-ak-question,
+.jnani-simulation .jnani-kep-question,
+.jnani-simulation .jnani-eed-question {
+  color: var(--jnani-sim-text);
+  font-size: var(--jnani-sim-font-question);
+  line-height: var(--jnani-sim-line-question);
+}
+
+.jnani-simulation .jnani-sim-option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jnani-sim-space-sm);
+}
+
+.jnani-simulation .jnani-sim-option {
+  min-width: 0;
+  border: 1px solid var(--jnani-sim-border);
+  border-radius: var(--jnani-sim-radius-md);
+  background: var(--jnani-sim-panel);
+  padding: var(--jnani-sim-space-md);
+  color: var(--jnani-sim-text);
+  font-size: var(--jnani-sim-font-body);
+}
+
+.jnani-simulation .jnani-sim-option:focus-visible,
+.jnani-simulation .jnani-sim-control-button:focus-visible,
+.jnani-simulation .jnani-sim-tabs > button:focus-visible {
+  outline: 2px solid var(--jnani-sim-accent);
+  outline-offset: 2px;
+}
+
+.jnani-simulation .jnani-sim-content input[type="range"] {
+  width: 100%;
+  accent-color: var(--jnani-sim-accent);
+}
+
+.jnani-simulation .jnani-sim-content input[type="range"]:focus-visible {
+  outline: 2px solid var(--jnani-sim-accent);
+  outline-offset: 3px;
+}
+
+.jnani-simulation .jnani-sim-range-row {
+  display: grid;
+  grid-template-columns: 42px minmax(80px, 1fr) 54px;
+  align-items: center;
+  gap: var(--jnani-sim-space-md);
+}
+
+.jnani-simulation .jnani-sim-range-row > span,
+.jnani-simulation .jnani-sim-range-row output {
+  font-family: var(--jnani-sim-mono);
+}
+
+.jnani-simulation .jnani-sim-range-row output {
+  color: var(--jnani-sim-accent);
+  text-align: right;
+}
+
+.jnani-simulation .jnani-sim-controls {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #1e293b;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+  background: var(--jnani-sim-panel);
+  padding: 14px 16px;
+}
+
+.jnani-simulation .jnani-sim-controls .scrubber {
+  min-width: 160px;
+  flex: 1;
+}
+
+.jnani-simulation .jnani-sim-control-button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: var(--jnani-sim-panel-soft);
+  padding: 8px 11px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.jnani-simulation .jnani-sim-control-button.primary {
+  border-color: var(--jnani-sim-accent);
+  background: var(--jnani-sim-accent);
+  color: #020617;
+}
+
+.jnani-simulation .jnani-sim-control-button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.jnani-simulation .jnani-sim-timeline {
+  width: 100%;
+  accent-color: var(--jnani-sim-accent);
+}
+
+.jnani-simulation .jnani-sim-speed-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: var(--jnani-sim-panel-soft);
+  padding: 4px;
+}
+
+.jnani-simulation .jnani-sim-speed-group button {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 6px 8px;
+  color: var(--jnani-sim-muted);
+  font: 11px var(--jnani-sim-mono);
+}
+
+.jnani-simulation .jnani-sim-speed-group button[aria-pressed="true"] {
+  background: var(--jnani-sim-accent);
+  color: #020617;
+  font-weight: 700;
+}
+
+.jnani-simulation .jnani-sim-stage-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #1e293b;
+  margin: 0 0 14px;
+}
+
+.jnani-simulation .jnani-sim-stage-progress > span {
+  display: block;
+  width: var(--stage-progress);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--jnani-sim-accent);
+  transition: width 180ms ease-out;
+}
+
+.jnani-simulation .jnani-sim-question-fragment {
+  display: block;
+  margin: 12px 0;
+  border-left: 3px solid var(--jnani-sim-cyan);
+  border-radius: 0 8px 8px 0;
+  background: #0c1b2b;
+  padding: 12px 14px;
+  color: #e2e8f0;
+  font-size: var(--jnani-sim-font-question);
+  line-height: var(--jnani-sim-line-question);
+}
+
+.jnani-simulation .jnani-sim-question-fragment > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #cbd5e1;
+  font: 12px var(--jnani-sim-font);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.jnani-simulation .jnani-sim-given-asked {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--jnani-sim-space-md);
+  margin-top: var(--jnani-sim-space-lg);
+}
+
+.jnani-simulation .jnani-sim-given-asked-column {
+  min-width: 0;
+  border: 1px solid var(--jnani-sim-border);
+  border-radius: var(--jnani-sim-radius-md);
+  background: #0c1b2b;
+  padding: var(--jnani-sim-space-lg);
+}
+
+.jnani-simulation .jnani-sim-given-asked h3 {
+  margin: 0 0 var(--jnani-sim-space-sm);
+  color: var(--jnani-sim-text);
+  font-size: var(--jnani-sim-font-body);
+  font-weight: 600;
+}
+
+.jnani-simulation .jnani-sim-given-asked ul {
+  display: grid;
+  gap: var(--jnani-sim-space-sm);
+  margin: 0;
+  padding-left: 1.15rem;
+  color: #cbd5e1;
+  line-height: 1.65;
+}
+
+.jnani-simulation .jnani-sim-given-asked p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+
+@media (max-width: 560px) {
+  .jnani-simulation .jnani-sim-given-asked {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.jnani-simulation .jnani-sim-scene-annotations {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.jnani-simulation .jnani-sim-scene-annotation {
+  position: absolute;
+  max-width: min(180px, 42vw);
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: rgb(2 6 23 / 88%);
+  padding: 3px 6px;
+  color: #e2e8f0;
+  font: 600 11px var(--jnani-sim-mono);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="axis-x"],
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="component-x"] {
+  color: #fca5a5;
+}
+
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="axis-y"],
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="component-y"],
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="velocity"] {
+  color: #86efac;
+}
+
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="axis-z"],
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="component-z"] {
+  color: #93c5fd;
+}
+
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="position"] {
+  color: #7dd3fc;
+}
+
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="acceleration"] {
+  color: #fcd34d;
+}
+
+.jnani-simulation .jnani-sim-scene-annotation[data-scene-label="particle"] {
+  color: #f8fafc;
+}
+
+.jnani-simulation .jnani-sim-equation {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  font-size: var(--jnani-sim-font-equation);
+}
+
+.jnani-simulation .jnani-pdm-statement {
+  font-size: var(--jnani-sim-font-question);
+  line-height: var(--jnani-sim-line-question);
+}
+
+.jnani-simulation .jnani-sim-equation .katex-display {
+  min-width: max-content;
+  margin: .2em 0;
+  text-align: left;
+}
+
+.jnani-simulation .jnani-sim-content .concept-contrast {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.jnani-simulation .jnani-sim-content .concept-contrast .data-card b {
+  font-family: var(--jnani-sim-font);
+  font-size: 12px;
+}
+
+.jnani-simulation .jnani-sim-content .equation {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  font-size: var(--jnani-sim-font-equation);
+}
+
+.jnani-simulation .jnani-sim-content .equation .katex-display {
+  min-width: max-content;
+  margin: .2em 0;
+  text-align: left;
+}
+
+.jnani-simulation .jnani-sim-scene-instruction {
+  color: var(--jnani-sim-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 1023px) {
+  .jnani-simulation .jnani-sim-layout {
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .jnani-simulation .jnani-sim-canvas-panel {
+    flex: 0 0 min(60dvh, 520px);
+    min-height: 390px;
+    border-right: 0;
+    border-bottom: 1px solid #1e293b;
+  }
+
+  .jnani-simulation .jnani-sim-learning-panel {
+    flex: 1 0 620px;
+    overflow: visible;
+  }
+
+  .jnani-simulation .jnani-sim-content {
+    flex: none;
+    min-height: 420px;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 760px) {
+  body.jnani-simulation {
+    height: auto;
+    overflow: auto;
+  }
+
+  .jnani-simulation .jnani-sim-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 9px 12px;
+  }
+
+  .jnani-simulation .jnani-sim-breadcrumb {
+    order: 3;
+    width: 100%;
+    border-left: 0;
+    padding-left: 0;
+    font-size: 11px;
+  }
+
+  .jnani-simulation .jnani-sim-header-actions {
+    order: 2;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .jnani-simulation .jnani-sim-header-main {
+    display: contents;
+  }
+
+  .jnani-simulation .jnani-sim-metadata {
+    margin-left: auto;
+    max-width: 46vw;
+    overflow: hidden;
+    padding: 6px 8px;
+    font-size: 9px;
+    text-overflow: ellipsis;
+  }
+
+  .jnani-simulation .jnani-sim-header-button {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .jnani-simulation .jnani-sim-header-button.primary {
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .jnani-simulation .jnani-sim-layout {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .jnani-simulation .jnani-sim-canvas-panel {
+    flex: 0 0 min(60dvh, 500px);
+    min-height: 390px;
+    border-right: 0;
+    border-bottom: 1px solid #1e293b;
+  }
+
+  .jnani-simulation .jnani-sim-learning-panel {
+    flex: 1 0 580px;
+    overflow: visible;
+  }
+
+  .jnani-simulation .jnani-sim-content {
+    flex: none;
+    min-height: 420px;
+    overflow: visible;
+    padding: 16px;
+  }
+
+  .jnani-simulation .jnani-sim-canvas-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .jnani-simulation .jnani-sim-phase-badge {
+    display: none;
+  }
+}

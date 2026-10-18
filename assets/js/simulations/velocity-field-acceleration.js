@@ -1,0 +1,345 @@
+(function () {
+  const question = window.PYQSimulationQuestionData.loadQuestion("velocity-field-acceleration");
+  if (!question) {
+    document.body.innerHTML = '<main style="max-width:680px;margin:10vh auto;padding:24px;color:#e2e8f0;font:16px Inter,sans-serif"><h1>Question simulation unavailable</h1><p>Open this simulation from its question card in the PYQ Studio.</p><button onclick="window.parent.postMessage({type:\'pyq-simulation-close\'},window.location.origin)" style="padding:10px 14px">Return to question library</button></main>';
+    throw new Error("The selected velocity-field question is missing from the local question library.");
+  }
+
+  const engine = window.PYQPhysicsEngines.velocityFieldAcceleration;
+  const colors = { position: "#a78bfa", velocity: "#38bdf8", acceleration: "#f59e0b", particle: "#22c55e", axis: "#94a3b8" };
+  const initial = { x: 1, y: 2, z: 4 };
+  const state = { mode: "question", understandStep: 0, solveStep: 0, position: { ...initial }, velocityVisible: false, accelerationVisible: false, camera: { yaw: Math.PI / 4, pitch: 0.36, zoom: 1 }, dragging: null };
+  let playbackTimer = null;
+  let playbackStage = 0;
+  const solveSteps = [
+    {
+      title: "1. Identify the velocity components",
+      body: String.raw`From \(\vec v=-x\hat i+2y\hat j-z\hat k\), the components are \(v_x=-x\), \(v_y=2y\), and \(v_z=-z\).`,
+      math: String.raw`\[\vec v=(-x,\,2y,\,-z)\]`,
+      trap: { title: "Treating a steady field as zero acceleration", wrong: String.raw`Since \(\partial\vec v/\partial t=0\), set \(\vec a=0\).`, fix: String.raw`A moving particle crosses a spatially varying field. Include the convective term \((\vec v\cdot\nabla)\vec v\).` }
+    },
+    {
+      title: "2. Use the material derivative",
+      body: String.raw`A moving particle samples a spatially changing field. Its acceleration is the rate of change following the particle, so the convective term must be included. The field has no explicit time dependence.`,
+      math: String.raw`\[\vec a=\frac{D\vec v}{Dt}=\frac{\partial\vec v}{\partial t}+(\vec v\cdot\nabla)\vec v,\qquad \frac{\partial\vec v}{\partial t}=0\]`,
+      trap: { title: "Stopping at the partial time derivative", wrong: String.raw`The field is steady, so acceleration must be zero.`, fix: String.raw`Steady means only \(\partial\vec v/\partial t=0\). The material derivative also contains \((\vec v\cdot\nabla)\vec v\).` }
+    },
+    {
+      title: "3. Differentiate along the particle path",
+      body: String.raw`The particle's coordinate rates equal its velocity components: \(\dot x=-x\), \(\dot y=2y\), and \(\dot z=-z\). Apply the chain rule to each velocity component.`,
+      math: String.raw`\[a_x=\frac{d(-x)}{dt}=x,\quad a_y=\frac{d(2y)}{dt}=4y,\quad a_z=\frac{d(-z)}{dt}=z\]\[\therefore\ \vec a=(x,\,4y,\,z)\]`,
+      trap: { title: "Differentiating coordinates as constants", wrong: String.raw`Treat \(x,y,z\) as fixed while differentiating the velocity.`, fix: String.raw`The particle moves, so \(\dot x=v_x\), \(\dot y=v_y\), and \(\dot z=v_z\). Apply the chain rule along its path.` }
+    },
+    {
+      title: "4. Substitute the specified point",
+      body: String.raw`At \((x,y,z)=(1,2,4)\), substitute each coordinate in the acceleration field.`,
+      math: String.raw`\[\vec a=(1,\,4\cdot2,\,4)=(1,\,8,\,4)\ \mathrm{m/s^2}\]`,
+      trap: { title: "Substituting into the velocity field again", wrong: String.raw`Use \((-1,4,-4)\) as the acceleration components.`, fix: String.raw`Those are velocity components. Substitute \((1,2,4)\) into the acceleration field \((x,4y,z)\) to get \((1,8,4)\).` }
+    },
+    {
+      title: "5. Find the magnitude",
+      body: String.raw`The magnitude is the Euclidean length of the three-component acceleration vector.`,
+      math: String.raw`\[|\vec a|=\sqrt{1^2+8^2+4^2}=\sqrt{81}=9\ \mathrm{m/s^2}\]`,
+      trap: { title: "Adding components instead of finding vector length", wrong: String.raw`Calculate \(|\vec a|=1+8+4=13\).`, fix: String.raw`Use the Euclidean magnitude: \(|\vec a|=\sqrt{1^2+8^2+4^2}=9\).` }
+    },
+    {
+      title: "6. Match the answer",
+      body: String.raw`The calculated magnitude matches option (2). The velocity at this point is \((-1,4,-4)\ \mathrm{m/s}\), a different vector from the acceleration \((1,8,4)\ \mathrm{m/s^2}\).`,
+      math: String.raw`\[\boxed{\text{Option (2): }9\ \mathrm{m/s^2}}\]`,
+      trap: { title: "Choosing the velocity magnitude", wrong: String.raw`Select \(\sqrt{33}\), the magnitude of velocity at the point.`, fix: String.raw`The question asks for acceleration magnitude. The velocity magnitude is a different quantity; \(|\vec a|=9\ \mathrm{m/s^2}\).` }
+    }
+  ];
+  const understandStages = [
+    { fragment: String.raw`\(\vec v=-x\hat i+2y\hat j-z\hat k\)`, caption: "Velocity field", focus: "velocity" },
+    { fragment: String.raw`\((1,2,4)\)`, caption: "Specified point", focus: "" },
+    { fragment: "The magnitude of acceleration at this point is requested.", caption: "Quantity requested", focus: "acceleration" },
+    { caption: "Given and find", focus: "acceleration", givenAsked: true }
+  ];
+  const givenAskedContent = {
+    given: [String.raw`\(\vec v=-x\hat i+2y\hat j-z\hat k\ \mathrm{m/s}\)`, String.raw`\(P=(1,2,4)\)`],
+    find: String.raw`\(|\vec a|\) at \(P\), in \(\mathrm{m/s^2}\)`
+  };
+
+  const shell = window.PYQSimulationShell.mount({
+    root: document.getElementById("simulation-shell-root"),
+    question: { title: question.topic, chapter: question.chapter, topic: question.topic, label: "JEE Main · 2 April 2026 · Session 1 · Set 1" },
+    toolbar: '<span class="jnani-sim-phase-badge">Drag to rotate · Scroll to zoom</span>',
+    visualization: '<div class="jnani-vfa-visual"><div class="jnani-vfa-scene"><svg id="vfa-scene" role="img" aria-label="3D coordinate system showing particle P and its position vector. Drag to rotate and scroll to zoom."></svg></div><div class="jnani-vfa-legend" aria-label="Vector legend"><span><i class="jnani-vfa-swatch" style="background:#a78bfa"></i><b>r</b> Position vector</span><span><i class="jnani-vfa-swatch" style="background:#38bdf8"></i><b>v</b> Velocity</span><span><i class="jnani-vfa-swatch" style="background:#f59e0b"></i><b>a</b> Acceleration</span><span><i class="jnani-vfa-swatch" style="background:#22c55e"></i><b>P</b> Particle</span></div></div>',
+    onModeChange: setMode
+  });
+
+  function fmt(value) { return Number(value).toFixed(1).replace(/\.0$/, ""); }
+  function vectorText(vector) { return `(${fmt(vector.x)}, ${fmt(vector.y)}, ${fmt(vector.z)})`; }
+  function proj(x, y, z) {
+    const { yaw, pitch } = state.camera;
+    const horizontal = x * Math.cos(yaw) - y * Math.sin(yaw);
+    const depth = x * Math.sin(yaw) + y * Math.cos(yaw);
+    const vertical = depth * Math.sin(pitch) + z * Math.cos(pitch);
+    const scale = 34 * state.camera.zoom;
+    return { x: 380 + scale * horizontal, y: 220 - scale * vertical };
+  }
+  function arrow(from, vector, color, label, scale = 1) {
+    if (!engine.magnitude(vector)) return "";
+    const end = proj(from.x + vector.x * scale, from.y + vector.y * scale, from.z + vector.z * scale);
+    const start = proj(from.x, from.y, from.z);
+    const labelX = label === "r" ? start.x + (end.x - start.x) * 0.58 + 8 : label === "v" ? end.x - 14 : end.x + 9;
+    const labelY = label === "r" ? start.y + (end.y - start.y) * 0.58 - 8 : label === "v" ? end.y + 17 : end.y - 8;
+    return `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" stroke="${color}" stroke-width="2.8" stroke-linecap="round" marker-end="url(#arrow-${label})"/><text x="${labelX}" y="${labelY}" fill="${color}" font-size="13" font-family="Inter, sans-serif" font-weight="700" class="jnani-vfa-axis-label">${label}</text>`;
+  }
+  function drawScene(focus = "") {
+    const svg = document.getElementById("vfa-scene");
+    if (!svg) return;
+    const { x, y, z } = state.position;
+    const origin = proj(0, 0, 0);
+    const selected = proj(x, y, z);
+    let content = `<defs>
+      <marker id="arrow-r" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L7,3 z" fill="${colors.position}"/></marker>
+      <marker id="arrow-v" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L7,3 z" fill="${colors.velocity}"/></marker>
+      <marker id="arrow-a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L7,3 z" fill="${colors.acceleration}"/></marker>
+      <marker id="arrow-axis" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,5 L6,2.5 z" fill="${colors.axis}"/></marker>
+    </defs>`;
+    const axes = [
+      { name: "X", from: { x: -3, y: 0, z: 0 }, to: { x: 6, y: 0, z: 0 }, label: { x: 6.25, y: 0, z: 0 } },
+      { name: "Y", from: { x: 0, y: -3, z: 0 }, to: { x: 0, y: 6, z: 0 }, label: { x: 0, y: 6.25, z: 0 } },
+      { name: "Z", from: { x: 0, y: 0, z: -2 }, to: { x: 0, y: 0, z: 6 }, label: { x: 0, y: 0, z: 6.25 } }
+    ];
+    for (const axis of axes) {
+      const start = proj(axis.from.x, axis.from.y, axis.from.z);
+      const end = proj(axis.to.x, axis.to.y, axis.to.z);
+      const label = proj(axis.label.x, axis.label.y, axis.label.z);
+      content += `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" stroke="${colors.axis}" stroke-width="1.45" opacity=".78" marker-end="url(#arrow-axis)"/>`;
+      const dx = end.x - start.x, dy = end.y - start.y, length = Math.hypot(dx, dy), nx = -dy / length * 3.5, ny = dx / length * 3.5;
+      for (let tick = -2; tick <= 5; tick += 1) {
+        if (tick === 0) continue;
+        const p = axis.name === "X" ? proj(tick, 0, 0) : axis.name === "Y" ? proj(0, tick, 0) : proj(0, 0, tick);
+        content += `<line x1="${p.x - nx}" y1="${p.y - ny}" x2="${p.x + nx}" y2="${p.y + ny}" class="jnani-vfa-axis-tick"/>`;
+      }
+      content += `<text x="${label.x + 5}" y="${label.y - 4}" fill="#e2e8f0" font-size="13" font-family="JetBrains Mono, monospace" font-weight="700" class="jnani-vfa-axis-label">${axis.name}</text>`;
+    }
+    const xyPoint = proj(x, y, 0), xPoint = proj(x, 0, 0);
+    content += `<line x1="${selected.x}" y1="${selected.y}" x2="${xyPoint.x}" y2="${xyPoint.y}" class="jnani-vfa-point-guide"/><line x1="${xyPoint.x}" y1="${xyPoint.y}" x2="${xPoint.x}" y2="${xPoint.y}" class="jnani-vfa-point-guide"/><line x1="${xPoint.x}" y1="${xPoint.y}" x2="${origin.x}" y2="${origin.y}" class="jnani-vfa-point-guide"/>`;
+    content += `<circle cx="${origin.x}" cy="${origin.y}" r="3" fill="#cbd5e1"/><text x="${origin.x - 16}" y="${origin.y + 16}" fill="#cbd5e1" font-size="11" font-family="JetBrains Mono, monospace">O</text>`;
+    content += arrow({ x: 0, y: 0, z: 0 }, state.position, colors.position, "r");
+    if (state.velocityVisible || focus === "velocity") content += arrow(state.position, engine.evaluateVelocity(state.position), colors.velocity, "v", 0.16);
+    if (state.accelerationVisible || focus === "acceleration") content += arrow(state.position, engine.evaluateAcceleration(state.position), colors.acceleration, "a", 0.16);
+    content += `<circle cx="${selected.x}" cy="${selected.y}" r="8" fill="none" stroke="${colors.particle}" stroke-width="1.2" opacity=".48"/><circle cx="${selected.x}" cy="${selected.y}" r="5.5" fill="${colors.particle}" stroke="#dcfce7" stroke-width="1.5"/><text x="${selected.x + 12}" y="${selected.y + 17}" fill="#4ade80" font-size="12" font-family="JetBrains Mono, monospace" font-weight="700" class="jnani-vfa-axis-label">P (${fmt(x)}, ${fmt(y)}, ${fmt(z)})</text>`;
+    svg.setAttribute("viewBox", "0 0 760 440");
+    svg.innerHTML = content;
+  }
+
+  const scene = document.getElementById("vfa-scene");
+  scene.addEventListener("pointerdown", event => {
+    state.dragging = { x: event.clientX, y: event.clientY, yaw: state.camera.yaw, pitch: state.camera.pitch, id: event.pointerId };
+    scene.setPointerCapture(event.pointerId);
+  });
+  scene.addEventListener("pointermove", event => {
+    const drag = state.dragging;
+    if (!drag || drag.id !== event.pointerId) return;
+    state.camera.yaw = drag.yaw + (event.clientX - drag.x) * 0.009;
+    state.camera.pitch = Math.max(-1.1, Math.min(1.1, drag.pitch + (event.clientY - drag.y) * 0.007));
+    drawScene(state.mode === "understand" ? understandStages[state.understandStep].focus : state.mode === "question" ? "field" : "");
+  });
+  const stopDrag = () => { state.dragging = null; };
+  scene.addEventListener("pointerup", stopDrag);
+  scene.addEventListener("pointercancel", stopDrag);
+  scene.addEventListener("wheel", event => {
+    event.preventDefault();
+    state.camera.zoom = Math.max(0.65, Math.min(1.6, state.camera.zoom * (event.deltaY < 0 ? 1.08 : 1 / 1.08)));
+    drawScene(state.mode === "understand" ? understandStages[state.understandStep].focus : "");
+  }, { passive: false });
+
+  function setShellTimeline(index, count, title, interactive = false) {
+    const slider = document.getElementById("timelineScrubber");
+    const current = document.getElementById("time-current");
+    const total = document.getElementById("time-total");
+    if (slider) { slider.disabled = !interactive; slider.value = count <= 1 ? 0 : index / (count - 1) * 100; }
+    if (current) current.textContent = count <= 1 ? "Static" : `${index + 1}/${count}`;
+    if (total) total.textContent = title || "No time evolution";
+    document.querySelectorAll(".jnani-sim-speed-group button").forEach(button => {
+      button.disabled = true;
+      button.title = "This question describes a steady field with no time-dependent animation.";
+    });
+    const play = document.getElementById("playPauseBtn");
+    if (play) { play.disabled = false; play.title = "Reveal position, velocity, then acceleration"; play.setAttribute("aria-label", "Reveal vectors in sequence"); }
+  }
+
+  function renderQuestion() {
+    const options = question.options.split("\n").map((option, index) => `<div class="jnani-sim-option">(${index + 1}) ${option.replace(/^[^)]*\)\s*/, "")}</div>`).join("");
+    document.getElementById("console-content").innerHTML = `<article class="jnani-sim-card"><div class="jnani-sim-content-eyebrow">Question ${question.questionNumber || ""}</div><p class="jnani-sim-question-text mt-3">The velocity of a particle is given by</p><div class="jnani-sim-equation mt-3">${String.raw`\[\vec v=-x\hat i+2y\hat j-z\hat k\ \mathrm{m/s}\]`}</div><p class="jnani-sim-question-text mt-3">The magnitude of acceleration at point ${String.raw`\((1,2,4)\)`} is ${String.raw`\(\mathrm{m/s^2}\)`}: ____.</p></article><section><div class="jnani-sim-card-label mb-2">Options</div><div class="jnani-sim-option-grid">${options}</div></section><div id="vfa-question-values" class="jnani-sim-card jnani-vfa-question-values" hidden aria-live="polite"></div><p class="jnani-sim-scene-instruction">Drag the scene to rotate; Play reveals <i>v</i>, then <i>a</i>.</p><div class="pt-2"><button class="jnani-sim-control-button primary jnani-vfa-start" type="button" data-start-understanding><span>Start Guided Understanding</span><span aria-hidden="true">›</span></button></div>`;
+    syncQuestionValues();
+    setShellTimeline(0, 3, "Vector reveal", true);
+  }
+
+  function renderUnderstand() {
+    const stage = understandStages[state.understandStep];
+    const recap = stage.givenAsked ? window.PYQSimulationTeaching.givenAndAsked(givenAskedContent) : `<div class="jnani-sim-question-fragment mt-4"><span>From the question</span>${stage.fragment}</div>`;
+    document.getElementById("console-content").innerHTML = `<div class="jnani-sim-stage-progress" style="--stage-progress:${(state.understandStep + 1) / understandStages.length * 100}%"><span></span></div><div class="jnani-sim-card"><div class="jnani-sim-content-eyebrow">Understand · Part ${state.understandStep + 1} of ${understandStages.length}</div><h2 class="jnani-sim-content-title mt-2">${stage.caption}</h2>${recap}</div><div class="jnani-sim-vfa-stage-note">${stage.givenAsked ? "The recap collects only the information supplied and the quantity requested." : stage.caption === "Velocity field" ? "The blue arrow shows velocity at the selected point." : stage.caption === "Specified point" ? "The green marker identifies the coordinates named in the question." : "The amber arrow shows the acceleration direction at this point."}</div><div class="jnani-vfa-step-controls"><button class="jnani-sim-control-button" data-ustep="-1" ${state.understandStep === 0 ? "disabled" : ""}>Previous part</button><button class="jnani-sim-control-button primary" data-ustep="1">${state.understandStep === understandStages.length - 1 ? "Proceed to Solve →" : "Next part"}</button></div>`;
+    setShellTimeline(state.understandStep, understandStages.length, "Parts");
+  }
+
+  function renderSolve() {
+    const step = solveSteps[state.solveStep];
+    document.getElementById("console-content").innerHTML = `<div class="jnani-sim-stage-progress" style="--stage-progress:${(state.solveStep + 1) / solveSteps.length * 100}%"><span></span></div><article class="jnani-sim-card"><div class="jnani-sim-content-eyebrow">Solve · Step ${state.solveStep + 1} of ${solveSteps.length}</div><h2 class="jnani-sim-content-title mt-2">${step.title}</h2><p class="mt-3 leading-7 text-slate-300">${step.body}</p><div class="jnani-sim-equation mt-4 overflow-x-auto">${step.math}</div></article>${window.PYQSimulationTeaching.commonStudentTrap(step.trap)}<div class="jnani-vfa-step-controls"><button class="jnani-sim-control-button" data-sstep="-1" ${state.solveStep === 0 ? "disabled" : ""}>Previous step</button><button class="jnani-sim-control-button primary" data-sstep="1">${state.solveStep === solveSteps.length - 1 ? "Explore values →" : "Next step"}</button></div>`;
+    setShellTimeline(state.solveStep, solveSteps.length, "Steps");
+  }
+
+  function renderExplore() {
+    const { x, y, z } = state.position;
+    const velocity = engine.evaluateVelocity(state.position);
+    const acceleration = engine.evaluateAcceleration(state.position);
+    document.getElementById("console-content").innerHTML = `<div class="jnani-sim-card"><div class="jnani-sim-content-eyebrow">Explore the field</div><h2 class="jnani-sim-content-title mt-2">Select a particle position</h2><div class="mt-4 space-y-3">${[["x", x], ["y", y], ["z", z]].map(([axis, value]) => `<label class="jnani-sim-range-row"><span class="font-mono-num">${axis.toUpperCase()}</span><input type="range" min="-3" max="6" step="0.1" value="${value}" data-coordinate="${axis}" aria-label="Particle ${axis.toUpperCase()} position"><output id="vfa-value-${axis}">${fmt(value)}</output></label>`).join("")}</div><div class="jnani-vfa-toggles mt-5"><label><input type="checkbox" data-vector="velocity" ${state.velocityVisible ? "checked" : ""}><span class="jnani-vfa-swatch" style="background:#38bdf8"></span>Show velocity <i>v</i></label><label><input type="checkbox" data-vector="acceleration" ${state.accelerationVisible ? "checked" : ""}><span class="jnani-vfa-swatch" style="background:#f59e0b"></span>Show acceleration <i>a</i></label></div><button class="jnani-sim-control-button mt-5" id="vfa-reset">Reset point and vectors</button></div><div class="jnani-sim-card"><div class="jnani-sim-card-label">Values at P</div><div class="jnani-vfa-values mt-3"><div class="vfa-point"><small>Position</small><strong id="vfa-position">P = ${vectorText(state.position)}</strong></div><div class="vfa-position-vector"><small>Position vector <i>r</i></small><strong id="vfa-position-vector">r = ${vectorText(state.position)}</strong></div><div class="vfa-velocity" data-value-vector="velocity" ${state.velocityVisible ? "" : "hidden"}><small>Velocity <i>v</i> (m/s)</small><strong id="vfa-velocity">${vectorText(velocity)}; |v| = ${fmt(engine.magnitude(velocity))}</strong></div><div class="vfa-acceleration" data-value-vector="acceleration" ${state.accelerationVisible ? "" : "hidden"}><small>Acceleration <i>a</i> (m/s²)</small><strong id="vfa-acceleration">${vectorText(acceleration)}; |a| = ${fmt(engine.magnitude(acceleration))}</strong></div></div></div>`;
+    document.querySelectorAll("[data-coordinate]").forEach(input => input.addEventListener("input", () => {
+      state.position[input.dataset.coordinate] = Number(input.value);
+      updateExploreValues();
+      drawScene();
+    }));
+    document.querySelectorAll("[data-vector]").forEach(input => input.addEventListener("change", () => {
+      stopPlayback();
+      state[`${input.dataset.vector}Visible`] = input.checked;
+      document.querySelector(`[data-value-vector="${input.dataset.vector}"]`).hidden = !input.checked;
+      drawScene();
+      setShellTimeline(state.accelerationVisible ? 2 : state.velocityVisible ? 1 : 0, 3, "Vector reveal", true);
+      playbackStage = state.accelerationVisible ? 2 : state.velocityVisible ? 1 : 0;
+    }));
+    document.getElementById("vfa-reset").addEventListener("click", () => {
+      stopPlayback();
+      state.position = { ...initial };
+      state.velocityVisible = false;
+      state.accelerationVisible = false;
+      playbackStage = 0;
+      renderExplore();
+      drawScene();
+    });
+    setShellTimeline(0, 3, "Vector reveal", true);
+  }
+
+  function updateExploreValues() {
+    const velocity = engine.evaluateVelocity(state.position);
+    const acceleration = engine.evaluateAcceleration(state.position);
+    for (const axis of ["x", "y", "z"]) document.getElementById(`vfa-value-${axis}`).textContent = fmt(state.position[axis]);
+    document.getElementById("vfa-position").textContent = `P = ${vectorText(state.position)}`;
+    document.getElementById("vfa-position-vector").textContent = `r = ${vectorText(state.position)}`;
+    document.getElementById("vfa-velocity").textContent = `${vectorText(velocity)}; |v| = ${fmt(engine.magnitude(velocity))}`;
+    document.getElementById("vfa-acceleration").textContent = `${vectorText(acceleration)}; |a| = ${fmt(engine.magnitude(acceleration))}`;
+  }
+
+  function syncQuestionValues() {
+    const panel = document.getElementById("vfa-question-values");
+    if (!panel) return;
+    const velocity = engine.evaluateVelocity(state.position);
+    const acceleration = engine.evaluateAcceleration(state.position);
+    const rows = [];
+    if (state.velocityVisible) rows.push(`<p class="jnani-vfa-value-line"><span class="vfa-velocity">v (m/s)</span><strong class="vfa-velocity">${vectorText(velocity)}</strong></p>`);
+    if (state.accelerationVisible) rows.push(`<p class="jnani-vfa-value-line"><span class="vfa-acceleration">a (m/s²)</span><strong class="vfa-acceleration">${vectorText(acceleration)} · |a| = ${fmt(engine.magnitude(acceleration))}</strong></p>`);
+    panel.hidden = rows.length === 0;
+    panel.innerHTML = rows.length ? `<div class="jnani-sim-card-label">Revealed at P</div>${rows.join("")}` : "";
+  }
+
+  function updatePlayIcon(playing) {
+    document.getElementById("playIcon")?.classList.toggle("hidden", playing);
+    document.getElementById("pauseIcon")?.classList.toggle("hidden", !playing);
+    const button = document.getElementById("playPauseBtn");
+    if (button) {
+      button.title = playing ? "Pause vector reveal" : "Reveal position, velocity, then acceleration";
+      button.setAttribute("aria-label", playing ? "Pause vector reveal" : "Reveal vectors in sequence");
+    }
+  }
+
+  function syncExploreVectors() {
+    const velocityInput = document.querySelector('[data-vector="velocity"]');
+    const accelerationInput = document.querySelector('[data-vector="acceleration"]');
+    const velocityRow = document.querySelector('[data-value-vector="velocity"]');
+    const accelerationRow = document.querySelector('[data-value-vector="acceleration"]');
+    if (velocityInput) velocityInput.checked = state.velocityVisible;
+    if (accelerationInput) accelerationInput.checked = state.accelerationVisible;
+    if (velocityRow) velocityRow.hidden = !state.velocityVisible;
+    if (accelerationRow) accelerationRow.hidden = !state.accelerationVisible;
+  }
+
+  function stopPlayback() {
+    if (playbackTimer !== null) clearInterval(playbackTimer);
+    playbackTimer = null;
+    updatePlayIcon(false);
+  }
+
+  function togglePlayback() {
+    if (playbackTimer !== null) { stopPlayback(); return; }
+    if (playbackStage >= 2) playbackStage = 0;
+    state.velocityVisible = playbackStage >= 1;
+    state.accelerationVisible = playbackStage >= 2;
+    syncExploreVectors();
+    syncQuestionValues();
+    drawScene();
+    setShellTimeline(playbackStage, 3, "Vector reveal", true);
+    updatePlayIcon(true);
+    playbackTimer = setInterval(() => {
+      playbackStage += 1;
+      if (playbackStage === 1) state.velocityVisible = true;
+      if (playbackStage === 2) state.accelerationVisible = true;
+      syncExploreVectors();
+      syncQuestionValues();
+      drawScene();
+      setShellTimeline(playbackStage, 3, "Vector reveal", true);
+      if (playbackStage >= 2) stopPlayback();
+    }, 900);
+  }
+
+  function setMode(mode) {
+    stopPlayback();
+    shell.setActiveMode(mode);
+    const modeChanged = mode !== state.mode;
+    state.mode = mode;
+    if (modeChanged) {
+      if (mode !== "explore") state.position = { ...initial };
+      state.velocityVisible = false;
+      state.accelerationVisible = false;
+      playbackStage = 0;
+    }
+    if (mode === "question") renderQuestion();
+    else if (mode === "understand") renderUnderstand();
+    else if (mode === "solve") renderSolve();
+    else renderExplore();
+    drawScene(mode === "understand" ? understandStages[state.understandStep].focus : "");
+    window.PYQSimulationMath.render(document.getElementById("console-content")).catch(error => console.error(error));
+    window.PYQSimulationMath.render(document.querySelector(".jnani-vfa-legend")).catch(error => console.error(error));
+  }
+
+  function navigateMode(mode) {
+    document.querySelectorAll(".jnani-sim-tabs [data-mode]").forEach(tab => tab.setAttribute("aria-current", tab.dataset.mode === mode ? "step" : "false"));
+    setMode(mode);
+  }
+
+  document.addEventListener("click", event => {
+    if (event.target.closest("[data-start-understanding]")) { navigateMode("understand"); return; }
+    const understandButton = event.target.closest("[data-ustep]");
+    if (understandButton) {
+      const direction = Number(understandButton.dataset.ustep);
+      if (direction > 0 && state.understandStep === understandStages.length - 1) { navigateMode("solve"); return; }
+      state.understandStep = Math.max(0, Math.min(understandStages.length - 1, state.understandStep + direction)); renderUnderstand(); drawScene(understandStages[state.understandStep].focus); window.PYQSimulationMath.render(document.getElementById("console-content")); return;
+    }
+    const solveButton = event.target.closest("[data-sstep]");
+    if (solveButton) {
+      const direction = Number(solveButton.dataset.sstep);
+      if (direction > 0 && state.solveStep === solveSteps.length - 1) { navigateMode("explore"); return; }
+      state.solveStep = Math.max(0, Math.min(solveSteps.length - 1, state.solveStep + direction)); renderSolve(); drawScene(); window.PYQSimulationMath.render(document.getElementById("console-content"));
+    }
+  });
+
+  window.resetAnimation = () => { stopPlayback(); state.position = { ...initial }; state.velocityVisible = false; state.accelerationVisible = false; playbackStage = 0; state.camera = { yaw: Math.PI / 4, pitch: 0.36, zoom: 1 }; state.dragging = null; state.understandStep = 0; state.solveStep = 0; if (state.mode === "understand") renderUnderstand(); else if (state.mode === "solve") renderSolve(); else if (state.mode === "explore") renderExplore(); else renderQuestion(); syncQuestionValues(); drawScene(state.mode === "understand" ? understandStages[state.understandStep].focus : ""); };
+  window.togglePlayPause = togglePlayback;
+  window.setSpeed = () => {};
+  window.scrubTimeline = value => {
+    if (state.mode !== "question" && state.mode !== "explore") return;
+    stopPlayback();
+    const stage = Math.max(0, Math.min(2, Math.round(Number(value) / 50)));
+    state.velocityVisible = stage >= 1;
+    state.accelerationVisible = stage >= 2;
+    playbackStage = stage;
+    syncExploreVectors();
+    syncQuestionValues();
+    drawScene();
+    setShellTimeline(stage, 3, "Vector reveal", true);
+  };
+  window.closeSimulation = () => window.parent !== window ? window.parent.postMessage({ type: "pyq-simulation-close" }, window.location.origin) : window.history.back();
+  setMode("question");
+})();

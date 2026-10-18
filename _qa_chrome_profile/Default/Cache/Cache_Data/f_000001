@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#020617">
+  <title>JNANI PHYSICS — PYQ Studio</title>
+  <link rel="stylesheet" href="assets/css/studio.css?v=20261016-2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" crossorigin="anonymous">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">J</div><div class="brand-name">JNANI<span class="brand-tag">physics · pyq studio</span></div></div>
+      <div class="nav-label">Workspace</div>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="active" data-page="overview"><span class="nav-icon">◫</span> Overview</button>
+        <button data-page="library"><span class="nav-icon">▤</span> Question library</button>
+        <button data-page="coverage"><span class="nav-icon">◷</span> Coverage tracker</button>
+        <button data-page="syllabus"><span class="nav-icon">⌘</span> Syllabus & taxonomy</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="syllabus-note"><strong>One source of truth</strong><p>Class and unit mapping follows your 20-unit syllabus. Missing exam metadata stays unconfirmed.</p></div>
+        <div class="local-note">Your question records are saved in this browser.</div>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <div class="breadcrumb">Workspace <span style="padding:0 7px;color:#c2c8c0">/</span> <b id="crumb">Overview</b></div>
+        <div class="top-actions">
+          <button class="icon-btn" id="exportBtn" aria-label="Export question data" title="Export question data">⇩</button>
+          <button class="icon-btn" id="importBtn" aria-label="Import question data" title="Import question data">⇧</button>
+          <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+          <div class="avatar" title="JNANI PHYSICS workspace">J</div>
+        </div>
+      </header>
+      <div class="content">
+        <section id="page-overview" class="page">
+          <div class="page-head"><div><div class="eyebrow">Your PYQ workspace</div><h1>Good evening, let's make progress.</h1><p>Build a trusted, syllabus-mapped question bank — one verified question at a time.</p></div><button class="btn btn-primary" data-add>＋ &nbsp; Add a question</button></div>
+          <div class="stats">
+            <div class="stat-card"><div class="stat-top">Questions entered <span class="stat-icon">▤</span></div><div class="stat-value" id="stat-entered">0</div><div class="stat-foot">Saved to your local library</div></div>
+            <div class="stat-card"><div class="stat-top">Verified <span class="stat-icon">✓</span></div><div class="stat-value" id="stat-verified">0</div><div class="stat-foot">Independently checked solutions</div></div>
+            <div class="stat-card"><div class="stat-top">Published <span class="stat-icon">↗</span></div><div class="stat-value" id="stat-published">0</div><div class="stat-foot">Ready for the student library</div></div>
+            <div class="stat-card"><div class="stat-top">Syllabus units covered <span class="stat-icon">◎</span></div><div class="stat-value" id="stat-units">0<span style="font-size:13px;color:#969f96;font-weight:500"> / 20</span></div><div class="stat-foot">At least one question entered</div></div>
+          </div>
+          <div class="dashboard-grid">
+            <section class="panel"><div class="panel-head"><div><div class="panel-title">Class coverage</div><div class="panel-sub">Question records grouped by class and syllabus unit</div></div><button class="btn btn-light btn-small" data-goto="coverage">Full tracker&nbsp; ↗</button></div><div class="coverage" id="classCoverage"></div></section>
+            <section class="panel"><div class="panel-head"><div><div class="panel-title">Question pipeline</div><div class="panel-sub">Track content from entry to publication</div></div></div><div class="pipeline" id="pipeline"></div></section>
+          </div>
+          <div class="lower-grid">
+            <section class="panel"><div class="panel-head"><div><div class="panel-title">Unit-by-unit progress</div><div class="panel-sub">Coverage is based on entered questions, not syllabus completion</div></div><button class="btn btn-light btn-small" data-goto="syllabus">View syllabus</button></div><div id="unitMini" class="unit-list"></div></section>
+            <section class="panel"><div class="panel-head"><div><div class="panel-title">Keep your library reliable</div><div class="panel-sub">A few ground rules for a useful PYQ bank</div></div></div><div class="focus-card"><h3>Record what the source says.</h3><p>Store the original wording and source-provided answer separately from AI explanations and verified solutions. Leave unavailable exam details unconfirmed—never fill them in by guesswork.</p><a href="#" class="quick-link" data-goto="library">Explore question library <span>→</span></a><a href="#" class="quick-link" data-add>Add your first question <span>＋</span></a></div></section>
+          </div>
+        </section>
+        <section id="page-library" class="page hidden">
+          <div class="page-head"><div><div class="eyebrow">Student question bank</div><h1>Question library</h1><p>Search, filter and sort questions across the supplied Class 11–12 syllabus.</p></div><button class="btn btn-primary" data-add>＋ &nbsp; Add a question</button></div>
+          <div class="panel filter-panel">
+            <div class="filter-top"><div class="filter-title">Filters <span style="font-weight:400;color:#9aa19a">· combine any fields</span></div><button class="btn btn-light btn-small" id="clearFilters">Clear filters</button></div>
+            <div class="filter-grid">
+              <div class="field"><label for="fExam">Exam</label><select class="control" id="fExam"><option value="">All exams</option><option>JEE Main</option><option>JEE Advanced</option></select></div>
+              <div class="field"><label for="fClass">Class</label><select class="control" id="fClass"><option value="">All classes</option><option value="11">Class 11</option><option value="12">Class 12</option></select></div>
+              <div class="field"><label for="fYear">Year</label><select class="control" id="fYear"><option value="">All years</option></select></div>
+              <div class="field"><label for="fMonth">Month</label><select class="control" id="fMonth"><option value="">All months</option></select></div>
+              <div class="field"><label for="fDate">Exam date</label><select class="control" id="fDate"><option value="">All dates</option></select></div>
+              <div class="field"><label for="fSession">Session</label><select class="control" id="fSession"><option value="">All sessions</option></select></div>
+              <div class="field"><label for="fShift">Shift</label><select class="control" id="fShift"><option value="">All shifts</option></select></div>
+              <div class="field"><label for="fPaper">Paper</label><select class="control" id="fPaper"><option value="">All papers</option></select></div>
+              <div class="field"><label for="fSet">Set number</label><select class="control" id="fSet"><option value="">All sets</option></select></div>
+              <div class="field"><label for="fUnit">Unit</label><select class="control" id="fUnit"><option value="">All units</option></select></div>
+              <div class="field"><label for="fChapter">Chapter</label><select class="control" id="fChapter" disabled><option value="">All chapters</option></select></div>
+              <div class="field"><label for="fTopic">Topic / subtopic</label><select class="control" id="fTopic" disabled><option value="">All topics</option></select></div>
+              <div class="field"><label for="fDifficulty">Difficulty</label><select class="control" id="fDifficulty"><option value="">Any difficulty</option><option>Easy</option><option>Moderate</option><option>Hard</option><option>Unassessed</option></select></div>
+            </div>
+            <div class="filter-bottom"><div class="search-wrap"><span class="search-symbol">⌕</span><input id="fSearch" class="control" placeholder="Search question wording, topic, source..." type="search"></div></div>
+          </div>
+          <div class="results-line"><span id="resultCount">0 questions</span><select class="sort-control" id="sortBy" aria-label="Sort questions"><option value="newest">Recently added</option><option value="oldest">Oldest added</option><option value="year-desc">Year: newest first</option><option value="year-asc">Year: oldest first</option><option value="difficulty">Difficulty</option></select></div>
+          <div id="questionList" class="question-list"></div>
+        </section>
+        <section id="page-coverage" class="page hidden coverage-page">
+          <div class="page-head"><div><div class="eyebrow">Creator dashboard</div><h1>Coverage tracker</h1><p>Track entered, verified and published records without overstating syllabus coverage.</p></div><button class="btn btn-primary" data-add>＋ &nbsp; Add a question</button></div>
+          <div class="stats">
+            <div class="stat-card"><div class="stat-top">Collection target <span class="stat-icon">◎</span></div><div class="stat-value" id="coverageTargetStat">Not set</div><div class="stat-foot">Set a target; syllabus scope stays separate</div></div>
+            <div class="stat-card"><div class="stat-top">Entered <span class="stat-icon">▤</span></div><div class="stat-value" id="coverageEntered">0</div><div class="stat-foot">All saved records, including drafts</div></div>
+            <div class="stat-card"><div class="stat-top">Verified <span class="stat-icon">✓</span></div><div class="stat-value" id="coverageVerified">0</div><div class="stat-foot">Status explicitly marked verified</div></div>
+            <div class="stat-card"><div class="stat-top">Published <span class="stat-icon">↗</span></div><div class="stat-value" id="coveragePublished">0</div><div class="stat-foot">Status explicitly marked published</div></div>
+          </div>
+          <section class="panel" style="margin-bottom:16px"><div class="panel-head"><div><div class="panel-title">Coverage by class and unit</div><div class="panel-sub">Counts below show how many questions are entered for each unit</div></div><div class="coverage-controls"><span style="font-size:10px;color:#8e968e">Collection target</span><input id="targetInput" class="target-input" type="number" min="0" placeholder="Not set" aria-label="Total question collection target"></div></div><div class="unit-table-wrap"><table class="coverage-table"><thead><tr><th>UNIT</th><th>CLASS</th><th>SYLLABUS UNIT</th><th>ENTERED</th><th>VERIFIED</th><th>PUBLISHED</th></tr></thead><tbody id="unitTable"></tbody></table></div></section>
+          <section class="panel"><div class="panel-head"><div><div class="panel-title">Exam and metadata coverage</div><div class="panel-sub">Breakdowns preserve distinct values exactly as entered; blank metadata remains unconfirmed.</div></div></div><div id="metadataCoverage" class="coverage" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px"></div></section>
+        </section>
+        <section id="page-syllabus" class="page hidden">
+          <div class="page-head"><div><div class="eyebrow">Centrally managed taxonomy</div><h1>Syllabus & taxonomy</h1><p>Class mapping and unit names follow the syllabus you supplied. Select a unit when classifying a question.</p></div><button class="btn btn-light" id="downloadTaxonomy">⇩ &nbsp; Export taxonomy</button></div>
+          <div class="stats">
+            <div class="stat-card"><div class="stat-top">Syllabus units <span class="stat-icon">⌘</span></div><div class="stat-value">20</div><div class="stat-foot">10 units per class</div></div>
+            <div class="stat-card"><div class="stat-top">Class 11 <span class="stat-icon">11</span></div><div class="stat-value">Units 1–10</div><div class="stat-foot">Measurement through waves</div></div>
+            <div class="stat-card"><div class="stat-top">Class 12 <span class="stat-icon">12</span></div><div class="stat-value">Units 11–20</div><div class="stat-foot">Electrostatics through communication</div></div>
+            <div class="stat-card"><div class="stat-top">Classifications recorded <span class="stat-icon">✓</span></div><div class="stat-value" id="taxonomyCount">0</div><div class="stat-foot">Question records with a unit assigned</div></div>
+          </div>
+          <section class="panel"><div class="panel-head"><div><div class="panel-title">Supplied syllabus</div><div class="panel-sub">Chapter/topic groups are organized under the supplied official unit names.</div></div><div style="display:flex;gap:8px"><select class="sort-control" id="syllabusClass"><option value="">All classes</option><option value="11">Class 11</option><option value="12">Class 12</option></select><input class="control" id="syllabusSearch" style="width:210px" placeholder="Find a unit or chapter"></div></div><div id="syllabusList"></div></section>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="modal-backdrop" id="questionModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-head"><div><h2 id="modalTitle">Add a question</h2><p>Preserve source wording and metadata exactly. Leave unknown details blank.</p></div><button class="modal-close" id="closeModal" aria-label="Close">×</button></div>
+      <form id="questionForm"><div class="modal-body">
+        <div class="form-section"><div class="form-section-title">Question and source</div><div class="form-grid two">
+          <div class="field full"><label for="qText">Original question wording <span style="color:#bf6e59">*</span></label><textarea id="qText" class="tall" required placeholder="Enter the question exactly as it appears in the source"></textarea></div>
+          <div class="field full"><label for="qOptions">Answer options (if applicable)</label><textarea id="qOptions" placeholder="Keep original option labels and wording"></textarea></div>
+          <div class="field"><label for="qSource">Source / reference</label><input id="qSource" class="control" placeholder="e.g. scanned paper, URL, book"></div>
+          <div class="field"><label for="qNumber">Question number / identifier</label><input id="qNumber" class="control" placeholder="Enter only if available"></div>
+        </div></div>
+        <div class="form-section"><div class="form-section-title">Exam metadata <span style="font-weight:400;color:#9ba39a">· unprovided details remain unconfirmed</span></div><div class="form-grid">
+          <div class="field"><label for="qExam">Exam</label><select id="qExam" class="control"><option value="">Unconfirmed</option><option>JEE Main</option><option>JEE Advanced</option></select></div>
+          <div class="field"><label for="qYear">Year</label><input id="qYear" class="control" placeholder="As supplied"></div>
+          <div class="field"><label for="qMonth">Month</label><input id="qMonth" class="control" placeholder="As supplied"></div>
+          <div class="field"><label for="qDate">Exam date</label><input id="qDate" class="control" placeholder="Only if available"></div>
+          <div class="field"><label for="qSession">Session</label><input id="qSession" class="control" placeholder="As printed / supplied"></div>
+          <div class="field"><label for="qShift">Shift</label><input id="qShift" class="control" placeholder="As printed / supplied"></div>
+          <div class="field"><label for="qPaper">Paper</label><input id="qPaper" class="control" placeholder="As printed / supplied"></div>
+          <div class="field"><label for="qSet">Set number</label><input id="qSet" class="control" placeholder="As supplied"></div>
+          <div class="field"><label for="qDifficulty">Difficulty</label><select id="qDifficulty" class="control"><option value="">Unassessed</option><option>Easy</option><option>Moderate</option><option>Hard</option></select></div>
+        </div></div>
+        <div class="form-section"><div class="form-section-title">Syllabus classification</div><div class="form-grid">
+          <div class="field"><label for="qUnit">Unit <span style="color:#bf6e59">*</span></label><select id="qUnit" class="control" required></select></div>
+          <div class="field"><label for="qChapter">Chapter</label><select id="qChapter" class="control" disabled><option value="">Choose a unit first</option></select></div>
+          <div class="field"><label for="qTopic">Topic / subtopic</label><input id="qTopic" class="control" list="topicSuggestions" placeholder="Choose a chapter first" disabled><datalist id="topicSuggestions"></datalist></div>
+          <div class="field full"><label for="qSecondary">Secondary topic tags (optional)</label><input id="qSecondary" class="control" placeholder="Separate multiple tags with commas"></div>
+        </div></div>
+        <div class="form-section"><div class="form-section-title">Solutions and status</div><div class="form-grid two">
+          <div class="field"><label for="qSourceAnswer">Source-provided answer / solution</label><textarea id="qSourceAnswer" placeholder="Copy from source, if included"></textarea></div>
+          <div class="field"><label for="qAiExplanation">AI-generated explanation</label><textarea id="qAiExplanation" placeholder="Keep AI-generated explanation separate"></textarea></div>
+          <div class="field"><label for="qVerifiedSolution">Independently verified solution</label><textarea id="qVerifiedSolution" placeholder="Solution checked independently"></textarea></div>
+          <div class="field"><label for="qStatus">Development status</label><select id="qStatus" class="control"><option>Development</option><option>In review</option><option>Verified</option><option>Published</option></select></div>
+        </div></div>
+        <div class="source-note">Unspecified year, month, set, shift, paper, date and exam remain unconfirmed. Class is determined by the selected syllabus unit (1–10 = Class 11; 11–20 = Class 12).</div>
+        <div class="modal-footer"><span class="modal-footer-note">Records are saved in this browser. Export JSON for backup.</span><div style="display:flex;gap:8px"><button type="button" class="btn btn-light" id="cancelModal">Cancel</button><button type="submit" class="btn btn-primary">Save question</button></div></div>
+      </div></form>
+    </div>
+  </div>
+  <div class="simulation-workspace" id="simulationModal" role="dialog" aria-modal="true" aria-labelledby="simulationTitle">
+    <iframe id="referenceSimulationFrame" class="reference-simulation-frame" title="Young's modulus measurement error simulation"></iframe>
+    <header class="sim-topbar">
+      <div class="sim-brand"><div class="sim-brandmark">J</div><div class="sim-brandname" id="simulationBrand">JNANI <span>PHYSICS</span></div></div>
+      <div class="sim-breadcrumb"><span id="simulationChapter">Units and measurements</span> &nbsp;›&nbsp; <b id="simulationTopic">Errors in measurements</b></div>
+      <button class="sim-close" id="closeSimulation" aria-label="Close simulation">×</button>
+    </header>
+    <div class="sim-workarea">
+      <section class="sim-visual-panel">
+        <div class="sim-canvas-head"><span class="sim-canvas-title" id="simulationCanvasTitle">Measurement uncertainty visualizer</span><div class="sim-toggle-row"><button class="sim-toggle active" id="simGridToggle">▦ Grid</button><button class="sim-toggle active" id="simLabelsToggle">↗ Labels</button></div></div>
+        <div class="sim-canvas-shell" id="measurementCanvasShell">
+          <canvas id="measurementCanvas" aria-label="Animated visualization of a wire and its measurement uncertainties. Measurements and instruments are illustrative and not to scale."></canvas>
+          <div class="sim-readout"><span>Wire length <b id="simReadLength">150.0 cm</b></span><span>Diameter <b id="simReadDiameter">0.080 cm</b></span><span>Extension <b id="simReadExtension">0.500 cm</b></span></div>
+          <div class="sim-canvas-caption" id="simCanvasCaption">Illustrative diagram · not to scale</div>
+        </div>
+        <div class="sim-playback">
+          <div class="sim-play-actions"><button class="sim-dark-btn primary" id="simPlay">▶ Play</button><button class="sim-dark-btn" id="simReset">↺ Reset</button></div>
+          <label class="sim-scrubber"><span>0</span><input id="simTimeline" aria-label="Simulation timeline" type="range" min="0" max="100" step="1" value="0"><span id="simTimelineLabel">Ready</span></label>
+          <div class="sim-speed" aria-label="Simulation speed"><button data-speed="0.5">0.5×</button><button class="active" data-speed="1">1×</button><button data-speed="1.5">1.5×</button></div>
+        </div>
+      </section>
+      <section class="sim-right-panel">
+        <div class="sim-question-header"><div class="sim-question-eyebrow">Question workspace · Class <span id="simulationClass">11</span></div><h1 class="sim-title" id="simulationTitle">Young's modulus · error in measurement</h1><div class="sim-meta-row" id="simulationMeta"></div></div>
+        <nav class="sim-mode-tabs" aria-label="Question learning modes"><button class="sim-mode-tab active" data-sim-mode="QUESTION">▤ &nbsp;Question</button><button class="sim-mode-tab" data-sim-mode="UNDERSTAND">◉ &nbsp;Understand</button><button class="sim-mode-tab" data-sim-mode="SOLVE">∑ &nbsp;Solve</button><button class="sim-mode-tab" data-sim-mode="EXPLORE">⌁ &nbsp;Explore</button></nav>
+        <div class="sim-mode-content" id="simModeContent" aria-live="polite"></div>
+        <div class="sim-mode-footer"><span class="sim-step-info" id="simStepInfo">Original question</span><div class="sim-play-actions"><button class="sim-dark-btn" id="simPrev" disabled>← Back</button><button class="sim-dark-btn primary" id="simNext">Start understanding →</button></div></div>
+      </section>
+    </div>
+    <div hidden><button id="simulationPrev"></button><button id="simulationNext"></button><button id="simulationReset"></button><button id="simulationPlay"></button></div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="assets/js/physics/youngs-modulus-error.js" defer></script>
+  <script src="assets/js/simulation-theme.js?v=20261016" defer></script>
+  <script src="assets/js/simulations/youngs-modulus-error.js" defer></script>
+  <script src="assets/js/simulations/youngs-modulus-error-renderer.js" defer></script>
+  <script src="assets/js/shared/canvas-components.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js" defer crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js" defer crossorigin="anonymous"></script>
+  <script src="assets/js/app.js?v=20261017-21" defer></script>
+</body>
+</html>

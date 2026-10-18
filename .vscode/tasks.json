@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Serve JNANI Physics",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "-u",
+                "${workspaceFolder}/scripts/serve_jnani.py"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "jnani-http-server",
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Serving JNANI project on",
+                    "endsPattern": "^Serving JNANI project on .* port 8002$"
+                }
+            }
+        }
+    ]
+}

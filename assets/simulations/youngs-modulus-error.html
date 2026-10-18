@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JNANI Physics | Young's Modulus Measurement Error Simulation & Common Mistakes</title>
+    <script src="../js/physics/youngs-modulus-error.js"></script>
+    <link rel="stylesheet" href="../css/simulation-assets.css?v=20261017-1">
+    <script src="../js/shared/simulation-tailwind-config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../js/shared/simulation-math.js"></script>
+    <script src="../js/shared/simulation-teaching-components.js"></script>
+</head>
+<body class="jnani-simulation bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-green-500 selection:text-slate-950">
+
+    <div id="simulation-shell-root"></div>
+    <template id="simulation-toolbar">
+        <div class="flex items-center space-x-2">
+            <button onclick="resetView()" class="jnani-sim-control-button px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition-colors" title="Reset Pan &amp; Zoom" type="button">Reset View</button>
+            <div id="phase-badge" class="jnani-sim-phase-badge px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono-num text-green-400">Phase: Diameter Measurement</div>
+        </div>
+    </template>
+    <template id="simulation-visualization">
+        <div id="canvasContainer" class="flex-1 relative flex items-start justify-center pt-4 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] min-h-[420px] lg:min-h-0 overflow-hidden cursor-grab active:cursor-grabbing">
+            <canvas id="simCanvas" class="w-full h-full drop-shadow-2xl rounded-xl border border-slate-800/80 bg-slate-900/90 block"></canvas>
+        </div>
+    </template>
+    <script src="../js/shared/simulation-shell.js"></script>
+    <script>
+        const templateHtml = id => document.getElementById(id).innerHTML;
+        const simulationShell = window.PYQSimulationShell.mount({
+            root: document.getElementById('simulation-shell-root'),
+            question: {
+                title: 'Errors in measurements',
+                chapter: 'Units and measurements',
+                topic: 'Errors in measurements',
+                label: ''
+            },
+            toolbar: templateHtml('simulation-toolbar'),
+            visualization: templateHtml('simulation-visualization'),
+            onModeChange: mode => window.switchMode(mode)
+        });
+    </script>
+
+    <script>
+        const QUESTION_STORAGE_KEY = 'orbit-physics-pyq-v1';
+        const requestedQuestionId = new URLSearchParams(window.location.search).get('questionId');
+        const questionLibrary = JSON.parse(localStorage.getItem(QUESTION_STORAGE_KEY) || '[]');
+        const activeQuestion = requestedQuestionId
+            ? questionLibrary.find(question => question.id === requestedQuestionId)
+            : questionLibrary.find(question => question.simulation?.engine === 'youngs-modulus-error');
+        if (!activeQuestion || activeQuestion.simulation?.engine !== 'youngs-modulus-error') {
+            document.body.innerHTML = '<main style="max-width:680px;margin:10vh auto;padding:24px;color:#e2e8f0;font:16px Inter,sans-serif"><h1>Question simulation unavailable</h1><p>Open this simulation from its question card in the PYQ Studio so its saved question data can be loaded.</p><button onclick="window.parent.postMessage({type:\'pyq-simulation-close\'},window.location.origin)" style="padding:10px 14px">Return to question library</button></main>';
+            throw new Error('The selected question or its Young’s modulus simulation data is missing from the local question library.');
+        }
+        const baseParameters = activeQuestion.simulation.parameters;
+        const engineParameters = {
+            forceN: Number(baseParameters.forceN),
+            lengthCm: Number(baseParameters.lengthCm),
+            lengthLeastCountCm: Number(baseParameters.lengthLeastCountCm),
+            diameterCm: Number(baseParameters.diameterCm),
+            diameterLeastCountCm: Number(baseParameters.diameterLeastCountCm),
+            extensionCm: Number(baseParameters.extensionCm),
+            extensionLeastCountCm: Number(baseParameters.extensionLeastCountCm)
+        };
+        const baselineMetrics = window.PYQPhysicsEngines.youngsModulusError.calculate(engineParameters);
+        const metadataParts = [activeQuestion.exam, activeQuestion.date && `${activeQuestion.date} ${activeQuestion.month || ''} ${activeQuestion.year || ''}`.trim(), activeQuestion.set && `Set ${activeQuestion.set}`].filter(Boolean);
+        const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+
+        const appState = {
+            mode: 'question',
+            isPlaying: true,
+            playbackSpeed: 1.0,
+            questionTime: 0,
+            questionDuration: 12.0,
+            understandStep: 0,
+            understandTime: 0,
+            understandDuration: 3.0,
+            solveStep: 0,
+            view: { panX: 0, panY: 0, zoom: 1.0 },
+            explore: {
+                diameter: engineParameters.diameterCm,
+                d_lc: engineParameters.diameterLeastCountCm,
+                length: engineParameters.lengthCm,
+                l_lc: engineParameters.lengthLeastCountCm,
+                force: engineParameters.forceN,
+                extension: engineParameters.extensionCm,
+                ext_lc: engineParameters.extensionLeastCountCm,
+                inputMode: 'force'
+            }
+        };
+
+        const BASELINE_Y = baselineMetrics.youngModulus;
+
+        const solveStepsData = [
+            {
+                stepNum: 1,
+                title: "Step 1 — Identify the physical relationship",
+                explanation: "Young's modulus is defined as the ratio of longitudinal stress to longitudinal strain: \\[ Y = \\frac{F/A}{\\Delta l / l} = \\frac{Fl}{A \\Delta l} \\]",
+                calculation: "Establish exact ratio structure linking force, original length, cross-sectional area, and extension.",
+                mistake: {
+                    title: "Reversing the strain ratio",
+                    wrong: "Using $l / \\Delta l$ instead of $\\Delta l / l$.",
+                    why: "Strain is fractional elongation ($\\Delta l / l$), not initial length over extension. Always ensure extension is in the numerator."
+                }
+            },
+            {
+                stepNum: 2,
+                title: "Step 2 — Substitute the cross-sectional area",
+                explanation: "For a circular wire of diameter $d$, cross-sectional area is \\[ A = \\frac{\\pi d^2}{4} \\] Substituting this gives \\[ Y = \\frac{4Fl}{\\pi d^2 \\Delta l} \\]",
+                calculation: "Area depends quadratically on diameter ($A \\propto d^2$).",
+                mistake: {
+                    title: "Forgetting the divisor of 4",
+                    wrong: "Using $A = \\pi d^2$ instead of $\\frac{\\pi d^2}{4}$.",
+                    why: "Radius $r = d/2$, so $A = \\pi r^2 = \\frac{\\pi d^2}{4}$. Omitting the divisor of 4 introduces a factor of 4 error."
+                }
+            },
+            {
+                stepNum: 3,
+                title: "Step 3 — Calculate relative measurement error",
+                explanation: "Using the maximum-error fractional formula: \\[ \\frac{\\delta Y}{Y} = \\frac{\\delta l}{l} + 2\\frac{\\delta d}{d} + \\frac{\\delta(\\Delta l)}{\\Delta l} \\]",
+                calculation: "Combine relative uncertainties of length, diameter (multiplied by 2), and extension.",
+                mistake: {
+                    title: "Omitting the factor of 2 for diameter",
+                    wrong: "Writing $\\frac{\\delta d}{d}$ without coefficient 2.",
+                    why: "Because $Y \\propto 1/d^2$, the relative error contribution from diameter is doubled ($2 \\frac{\\delta d}{d}$)."
+                }
+            },
+            {
+                stepNum: 4,
+                title: "Step 4 — Substitute the least counts",
+                explanation: "Substitute given least counts and measured values:\n- Length: $\\frac{0.1}{150} \\approx 0.000667$\n- Diameter: $2 \\times \\frac{0.001}{0.08} = 0.025$\n- Extension: $\\frac{0.001}{0.5} = 0.002$.",
+                calculation: "Evaluate each relative term independently before summing.",
+                mistake: {
+                    title: "Using least count directly without measured value",
+                    wrong: "Writing $0.001$ directly without dividing by $0.08$.",
+                    why: "Relative error is $\\frac{\\text{Least Count}}{\\text{Measured Value}}$, not the absolute least count value."
+                }
+            },
+            {
+                stepNum: 5,
+                title: "Step 5 — Add the relative contributions",
+                explanation: "Sum relative error terms: \\[ \\frac{\\delta Y}{Y} \\approx 0.000667 + 0.025 + 0.002 = 0.027667 \\quad (\\approx 2.77\\%) \\]",
+                calculation: "Total Relative Error $\\approx 2.77\\%$.",
+                mistake: {
+                    title: "Treating decimal fraction as percentage directly",
+                    wrong: "Stating the relative error is $0.0277\\%$.",
+                    why: "$0.027667$ as a decimal fraction represents $2.77\\%$ when multiplied by 100."
+                }
+            },
+            {
+                stepNum: 6,
+                title: "Step 6 — Calculate Young's modulus in SI units",
+                explanation: "Convert to SI units: $l = 1.5\\ \\text{m}$, $d = 0.0008\\ \\text{m}$, $\\Delta l = 0.005\\ \\text{m}$, $F = 100\\ \\text{N}$.\n\\[ Y = \\frac{4(100)(1.5)}{\\pi (0.0008)^2 (0.005)} \\approx 5.97 \\times 10^{10}\\ \\text{N/m}^2 \\]",
+                calculation: "Compute absolute $Y$ value using consistent SI units.",
+                mistake: {
+                    title: "Forgetting to square the converted diameter",
+                    wrong: "Using $0.0008$ in the denominator instead of $(0.0008)^2$.",
+                    why: "Cross-sectional area requires $d^2$, so squaring the converted meter value is mandatory."
+                }
+            },
+            {
+                stepNum: 7,
+                title: "Step 7 — Find absolute error and $\\alpha$",
+                explanation: "Absolute error: \\[ \\delta Y = Y \\times \\left(\\frac{\\delta Y}{Y}\\right) = 5.97 \\times 10^{10} \\times 0.027667 \\approx 1.65 \\times 10^9\\ \\text{N/m}^2 \\]\nSince $\\delta Y = \\alpha \\times 10^9\\ \\text{N/m}^2$, we get $\\alpha = 1.65$.",
+                calculation: "Match absolute error magnitude with $\\alpha \\times 10^9$ format.",
+                mistake: {
+                    title: "Reporting relative error instead of absolute error",
+                    wrong: "Answering with $2.77$ or $0.0277$.",
+                    why: "The question asks for error in form $\\alpha \\times 10^9\\ \\text{N/m}^2$, which requires absolute error $\\delta Y$."
+                }
+            }
+        ];
+
+        function calculateYoungsModulusMetrics(params) {
+            let extension = params.extension;
+            if (params.inputMode === 'force') {
+                const area = Math.PI * Math.pow(params.diameter / 100, 2) / 4;
+                extension = (params.force * params.length / 100) / (area * BASELINE_Y) * 100;
+            }
+            const result = window.PYQPhysicsEngines.youngsModulusError.calculate({
+                forceN: params.force,
+                lengthCm: params.length,
+                lengthLeastCountCm: params.l_lc,
+                diameterCm: params.diameter,
+                diameterLeastCountCm: params.d_lc,
+                extensionCm: extension,
+                extensionLeastCountCm: params.ext_lc
+            });
+            return {
+                area: result.area,
+                Y: result.youngModulus,
+                err_l: result.lengthError,
+                err_d: result.diameterError,
+                err_ext: result.extensionError,
+                totalRelativeError: result.relativeError,
+                absoluteError: result.absoluteError,
+                alpha: result.alpha,
+                extension
+            };
+        }
+
+        function solutionDataForStep(index) {
+            const step = { ...solveStepsData[index], mistake: { ...solveStepsData[index].mistake } };
+            const values = { ...appState.explore, inputMode: 'measure' };
+            const result = calculateYoungsModulusMetrics(values);
+            const relative = result.totalRelativeError;
+            const lengthMetres = values.length / 100;
+            const diameterMetres = values.diameter / 100;
+            const extensionMetres = values.extension / 100;
+            if (index === 3) {
+                step.explanation = `Substitute the supplied least counts and measurements:\n- Length: $\\frac{${values.l_lc}}{${values.length}} \\approx ${result.err_l.toPrecision(6)}$\n- Diameter: $2 \\times \\frac{${values.d_lc}}{${values.diameter}} = ${result.err_d.toPrecision(6)}$\n- Extension: $\\frac{${values.ext_lc}}{${values.extension}} = ${result.err_ext.toPrecision(6)}$.`;
+                step.mistake.wrong = `Using ${values.d_lc} directly without dividing by the measured diameter ${values.diameter}.`;
+            } else if (index === 4) {
+                step.explanation = `Sum the relative-error contributions: \\[ \\frac{\\delta Y}{Y} \\approx ${result.err_l.toPrecision(6)} + ${result.err_d.toPrecision(6)} + ${result.err_ext.toPrecision(6)} = ${relative.toPrecision(6)} \\quad (\\approx ${(relative * 100).toPrecision(4)}\\%) \\]`;
+                step.calculation = `Total relative error ≈ ${(relative * 100).toPrecision(4)}%.`;
+                step.mistake.wrong = `Stating the relative error as ${relative.toPrecision(4)}% instead of ${(relative * 100).toPrecision(4)}%.`;
+                step.mistake.why = `${relative.toPrecision(6)} is a decimal fraction; multiply by 100 to express it as a percentage.`;
+            } else if (index === 5) {
+                step.explanation = `Convert to SI units: $\\ell = ${lengthMetres}\\ \\text{m}$, $d = ${diameterMetres}\\ \\text{m}$, $\\Delta \\ell = ${extensionMetres}\\ \\text{m}$, $F = ${values.force}\\ \\text{N}$.\n\\[ Y = \\frac{${values.force}(${lengthMetres})}{\\pi(${diameterMetres})^2(${extensionMetres})/4} \\approx ${result.Y.toExponential(3)}\\ \\text{N/m}^2 \\]`;
+                step.mistake.wrong = `Using ${diameterMetres} m without squaring the converted diameter.`;
+            } else if (index === 6) {
+                step.explanation = `Absolute error: \\[ \\delta Y = Y \\times \\left(\\frac{\\delta Y}{Y}\\right) = ${result.Y.toExponential(3)} \\times ${relative.toPrecision(6)} \\approx ${result.absoluteError.toExponential(3)}\\ \\text{N/m}^2 \\]\nSince $\\delta Y = \\alpha \\times 10^9\\ \\text{N/m}^2$, we get $\\alpha = ${result.alpha.toFixed(2)}$.`;
+                step.mistake.wrong = `Answering with the relative error ${relative.toPrecision(4)} or ${(relative * 100).toPrecision(4)}%, instead of the absolute error.`;
+            }
+            return step;
+        }
+
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvasContainer');
+
+        function resizeCanvas() {
+            const rect = canvasContainer.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+            
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        let isDragging = false;
+        let startX = 0, startY = 0;
+
+        canvasContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - appState.view.panX;
+            startY = e.clientY - appState.view.panY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            appState.view.panX = e.clientX - startX;
+            appState.view.panY = e.clientY - startY;
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        canvasContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = 1.1;
+            if (e.deltaY < 0) {
+                appState.view.zoom = Math.min(2.5, appState.view.zoom * zoomFactor);
+            } else {
+                appState.view.zoom = Math.max(0.5, appState.view.zoom / zoomFactor);
+            }
+        }, { passive: false });
+
+        function resetView() {
+            appState.view.panX = 0;
+            appState.view.panY = 0;
+            appState.view.zoom = 1.0;
+        }
+
+        function drawSimulation() {
+            const rect = canvasContainer.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+
+            ctx.save();
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.translate(width / 2 + appState.view.panX, 40 + appState.view.panY);
+            ctx.scale(appState.view.zoom, appState.view.zoom);
+            ctx.translate(-width / 2, 0);
+
+            let scene = 'diameter';
+            let tLocal = 0;
+
+            if (appState.mode === 'question' || appState.mode === 'solve') {
+                const t = appState.questionTime;
+                if (t < 3.0) { scene = 'diameter'; tLocal = t / 3.0; }
+                else if (t < 6.0) { scene = 'length'; tLocal = (t - 3.0) / 3.0; }
+                else if (t < 9.0) { scene = 'load'; tLocal = (t - 6.0) / 3.0; }
+                else { scene = 'extension'; tLocal = (t - 9.0) / 3.0; }
+            } else if (appState.mode === 'understand') {
+                if (appState.understandStep === 0) { scene = 'diameter'; tLocal = appState.understandTime / appState.understandDuration; }
+                else if (appState.understandStep === 1) { scene = 'length'; tLocal = appState.understandTime / appState.understandDuration; }
+                else if (appState.understandStep === 2) { scene = 'load'; tLocal = appState.understandTime / appState.understandDuration; }
+                else { scene = 'extension'; tLocal = appState.understandTime / appState.understandDuration; }
+            } else if (appState.mode === 'explore') {
+                scene = 'extension';
+                tLocal = 1.0;
+            }
+
+            if (scene === 'diameter') drawSceneDiameter(width, height, tLocal);
+            else if (scene === 'length') drawSceneLength(width, height, tLocal);
+            else if (scene === 'load') drawSceneExtensionAndLoad(width, height, tLocal, Math.min(1.0, tLocal));
+            else if (scene === 'extension') drawSceneExtensionAndLoad(width, height, 1.0, 1.0);
+
+            ctx.restore();
+        }
+
+        function drawSceneDiameter(w, h, t) {
+            const dVal = appState.explore.diameter;
+            updateBadge(`Phase: Screw Gauge Diameter (d = ${dVal} cm)`);
+            const cx = w / 2, cy = 160;
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(cx - 180, cy - 110, 360, 220, 16);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('SCREW GAUGE MAGNIFIED CROSS-SECTION', cx, cy - 80);
+
+            // Visibly coupled wire radius (mapped clearly across 0.03, 0.08, 0.15, 0.27 cm)
+            const wireRadius = Math.min(80, Math.max(12, dVal * 280));
+            ctx.fillStyle = '#0ea5e9';
+            ctx.beginPath();
+            ctx.arc(cx, cy, wireRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#38bdf8';
+            ctx.stroke();
+
+            const progress = (appState.mode === 'explore') ? 1.0 : Math.min(1, t * 1.5);
+            const anvilX = cx - wireRadius - 40 + (1 - progress) * 60;
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(anvilX - 60, cy - 25, 60, 50);
+
+            const spindleX = cx + wireRadius + 40 - (1 - progress) * 60;
+            ctx.fillRect(spindleX, cy - 25, 60, 50);
+
+            ctx.strokeStyle = '#22c55e';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - wireRadius, cy + 50);
+            ctx.lineTo(cx - wireRadius, cy + 65);
+            ctx.moveTo(cx + wireRadius, cy + 50);
+            ctx.lineTo(cx + wireRadius, cy + 65);
+            ctx.moveTo(cx - wireRadius, cy + 57);
+            ctx.lineTo(cx + wireRadius, cy + 57);
+            ctx.stroke();
+
+            ctx.fillStyle = '#22c55e';
+            ctx.font = 'bold 13px JetBrains Mono, monospace';
+            ctx.fillText(`d = ${dVal} cm (Least Count = ${appState.explore.d_lc} cm)`, cx, cy + 88);
+        }
+
+        function drawSceneLength(w, h, t) {
+            const lVal = appState.explore.length;
+            updateBadge(`Phase: Hanging Wire Original Length (l = ${lVal} cm)`);
+            const cx = w / 2, topY = 30;
+            
+            const mappedWireLen = Math.min(340, Math.max(120, (lVal / 300.0) * 320));
+
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(cx - 70, topY - 15, 140, 15);
+
+            ctx.strokeStyle = '#0ea5e9';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(cx, topY);
+            ctx.lineTo(cx, topY + mappedWireLen);
+            ctx.stroke();
+
+            const scaleX = cx + 55;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(scaleX, topY - 10, 35, mappedWireLen + 20);
+            ctx.strokeStyle = '#475569';
+            ctx.strokeRect(scaleX, topY - 10, 35, mappedWireLen + 20);
+
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const y = topY + (i / 10) * mappedWireLen;
+                ctx.beginPath();
+                ctx.moveTo(scaleX, y);
+                ctx.lineTo(scaleX + (i % 5 === 0 ? 12 : 7), y);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - 30, topY);
+            ctx.lineTo(cx - 45, topY);
+            ctx.moveTo(cx - 30, topY + mappedWireLen);
+            ctx.lineTo(cx - 45, topY + mappedWireLen);
+            ctx.moveTo(cx - 38, topY);
+            ctx.lineTo(cx - 38, topY + mappedWireLen);
+            ctx.stroke();
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 13px JetBrains Mono, monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(`l = ${lVal} cm (LC = ${appState.explore.l_lc} cm)`, cx - 55, topY + mappedWireLen / 2 + 4);
+        }
+
+        function drawSceneExtensionAndLoad(w, h, t, loadProgress) {
+            const extVal = appState.explore.extension;
+            const forceVal = appState.explore.force;
+            const lVal = appState.explore.length;
+            
+            updateBadge(`Phase: Load (F = ${forceVal} N) & Extension (\u0394l = ${extVal} cm)`);
+            const cx = w / 2, topY = 30;
+            
+            const baseLen = Math.min(240, Math.max(120, (lVal / 300.0) * 240));
+            const extraLen = Math.min(120, Math.max(20, extVal * 55)) * loadProgress;
+            const totalLen = baseLen + extraLen;
+
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(cx - 70, topY - 15, 140, 15);
+
+            // Unloaded original endpoint reference line (positioned neatly to the right)
+            ctx.strokeStyle = '#94a3b8';
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - 70, topY + baseLen);
+            ctx.lineTo(cx + 80, topY + baseLen);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('Original endpoint (unloaded)', cx + 90, topY + baseLen + 4);
+
+            // Stretched wire
+            ctx.strokeStyle = '#0ea5e9';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(cx, topY);
+            ctx.lineTo(cx, topY + totalLen);
+            ctx.stroke();
+
+            // Weight block
+            const weightY = topY + totalLen;
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.roundRect(cx - 35, weightY, 70, 42, 8);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`F = ${forceVal} N`, cx, weightY + 25);
+
+            // Extension dimension line placed strictly on the left (non-overlapping)
+            const dimX = cx - 120;
+            ctx.strokeStyle = '#22c55e';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(dimX - 5, topY + baseLen);
+            ctx.lineTo(dimX + 5, topY + baseLen);
+            ctx.moveTo(dimX - 5, weightY);
+            ctx.lineTo(dimX + 5, weightY);
+            ctx.moveTo(dimX, topY + baseLen);
+            ctx.lineTo(dimX, weightY);
+            ctx.stroke();
+
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.moveTo(dimX, topY + baseLen);
+            ctx.lineTo(dimX - 3, topY + baseLen + 6);
+            ctx.lineTo(dimX + 3, topY + baseLen + 6);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(dimX, weightY);
+            ctx.lineTo(dimX - 3, weightY - 6);
+            ctx.lineTo(dimX + 3, weightY - 6);
+            ctx.fill();
+
+            ctx.fillStyle = '#22c55e';
+            ctx.font = 'bold 12px JetBrains Mono, monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(`\u0394l = ${extVal} cm`, dimX - 10, topY + baseLen + extraLen / 2 + 4);
+
+            // Micrometer annotation placed independently below on the right to prevent all overlaps
+            const micX = cx + 90, micY = topY + baseLen + extraLen + 35;
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.roundRect(micX, micY, 140, 42, 6);
+            ctx.fill();
+            ctx.strokeStyle = '#475569';
+            ctx.stroke();
+
+            ctx.fillStyle = '#22c55e';
+            ctx.font = 'bold 11px JetBrains Mono, monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('Micrometer', micX + 10, micY + 16);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px Inter, sans-serif';
+            ctx.fillText(`LC = ${appState.explore.ext_lc} cm`, micX + 10, micY + 30);
+        }
+
+        function updateBadge(text) {
+            const badge = document.getElementById('phase-badge');
+            if (badge) badge.innerText = text;
+        }
+
+        let lastTimestamp = 0;
+
+        function animationLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const delta = (timestamp - lastTimestamp) / 1000 * appState.playbackSpeed;
+            lastTimestamp = timestamp;
+
+            if (appState.isPlaying) {
+                if (appState.mode === 'question' || appState.mode === 'solve') {
+                    appState.questionTime += delta;
+                    if (appState.questionTime > appState.questionDuration) {
+                        appState.questionTime = 0;
+                    }
+                    const scrubber = document.getElementById('timelineScrubber');
+                    if (scrubber) scrubber.value = (appState.questionTime / appState.questionDuration) * 100;
+                    const timeCurr = document.getElementById('time-current');
+                    if (timeCurr) timeCurr.innerText = appState.questionTime.toFixed(1) + 's';
+                } else if (appState.mode === 'understand') {
+                    appState.understandTime += delta;
+                    if (appState.understandTime > appState.understandDuration) {
+                        appState.understandTime = appState.understandDuration;
+                    }
+                    const scrubber = document.getElementById('timelineScrubber');
+                    if (scrubber) scrubber.value = (appState.understandTime / appState.understandDuration) * 100;
+                    const timeCurr = document.getElementById('time-current');
+                    if (timeCurr) timeCurr.innerText = appState.understandTime.toFixed(1) + 's';
+                }
+            }
+
+            drawSimulation();
+            requestAnimationFrame(animationLoop);
+        }
+
+        function togglePlayPause() {
+            appState.isPlaying = !appState.isPlaying;
+            updatePlayPauseUI();
+        }
+
+        function updatePlayPauseUI() {
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            if (!playIcon || !pauseIcon) return;
+            if (appState.isPlaying) {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+            } else {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+            }
+        }
+
+        function resetAnimation() {
+            if (appState.mode === 'question' || appState.mode === 'solve') {
+                appState.questionTime = 0;
+                const scrubber = document.getElementById('timelineScrubber');
+                if (scrubber) scrubber.value = 0;
+                const timeCurr = document.getElementById('time-current');
+                if (timeCurr) timeCurr.innerText = '0.0s';
+            } else if (appState.mode === 'understand') {
+                appState.understandTime = 0;
+            }
+            appState.isPlaying = true;
+            updatePlayPauseUI();
+        }
+
+        function scrubTimeline(val) {
+            appState.isPlaying = false;
+            updatePlayPauseUI();
+            if (appState.mode === 'understand') {
+                appState.understandTime = (val / 100) * appState.understandDuration;
+            } else {
+                appState.questionTime = (val / 100) * appState.questionDuration;
+            }
+            const timeCurr = document.getElementById('time-current');
+            const currentTime = appState.mode === 'understand' ? appState.understandTime : appState.questionTime;
+            if (timeCurr) timeCurr.innerText = currentTime.toFixed(1) + 's';
+        }
+
+        function setSpeed(speed) {
+            appState.playbackSpeed = speed;
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                const active = parseFloat(btn.dataset.speed) === speed;
+                btn.setAttribute('aria-pressed', String(active));
+                if (active) {
+                    btn.className = 'speed-btn px-2 py-1 rounded text-xs font-mono-num bg-green-500 text-slate-950 font-bold';
+                } else {
+                    btn.className = 'speed-btn px-2 py-1 rounded text-xs font-mono-num text-slate-400 hover:text-white';
+                }
+            });
+        }
+
+        function switchMode(mode) {
+            appState.mode = mode;
+            
+            ['question', 'understand', 'solve', 'explore'].forEach(m => {
+                const btn = document.getElementById(`tab-${m}`);
+                if (!btn) return;
+                btn.setAttribute('aria-current', m === mode ? 'step' : 'false');
+                if (m === mode) {
+                    btn.className = 'py-3 px-2 text-center border-b-2 border-green-500 text-green-400 bg-slate-800/40 transition-all flex flex-col items-center justify-center space-y-0.5';
+                } else {
+                    btn.className = 'py-3 px-2 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center space-y-0.5';
+                }
+            });
+
+            const controlsBar = document.getElementById('sim-controls-bar');
+            if (controlsBar) {
+                controlsBar.style.display = (mode === 'explore') ? 'none' : 'flex';
+            }
+            const timeTotal = document.getElementById('time-total');
+            if (timeTotal) timeTotal.innerText = (mode === 'understand' ? appState.understandDuration : appState.questionDuration).toFixed(1) + 's';
+
+            if (mode === 'question') {
+                resetAnimation();
+            } else if (mode === 'understand') {
+                appState.understandTime = 0;
+                appState.isPlaying = true;
+                updatePlayPauseUI();
+            } else if (mode === 'solve') {
+                appState.isPlaying = true;
+                updatePlayPauseUI();
+            }
+
+            renderConsoleContent();
+            setTimeout(renderAllMath, 50);
+        }
+
+        function renderConsoleContent() {
+            const container = document.getElementById('console-content');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (appState.mode === 'question') {
+                const options = String(activeQuestion.options || '').split('\n').filter(Boolean);
+                container.innerHTML = `
+                    <div class="space-y-4 animate-fade-in">
+                        <div class="bg-slate-800/60 p-5 rounded-xl border border-slate-700/80 shadow-lg">
+                            <span class="text-xs font-semibold text-green-400 tracking-wider uppercase">${escapeHtml(metadataParts.join(' · ') || 'Exam metadata unconfirmed')}</span>
+                            <p class="mt-2 text-sm text-slate-200 leading-relaxed font-medium whitespace-pre-line">${escapeHtml(activeQuestion.text)}</p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Options</span>
+                            <div class="grid grid-cols-2 gap-3 font-mono-num text-sm text-slate-300">
+                                ${options.map(option => `<div class="p-3 rounded-lg bg-slate-800/40 border border-slate-700/60">${escapeHtml(option)}</div>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="pt-4 flex items-center justify-between">
+                            <button onclick="switchMode('understand')" class="w-full bg-green-500 hover:bg-green-600 text-slate-950 font-semibold py-3 px-4 rounded-xl shadow-lg shadow-green-500/20 transition-all flex items-center justify-center space-x-2">
+                                <span>Start Guided Understanding</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (appState.mode === 'understand') {
+                const values = appState.explore;
+                const steps = [
+                    { title: "Part 1: Diameter & Screw Gauge", text: `The diameter is measured by a screw gauge with least count ${values.d_lc} cm.`, detail: `Measured diameter $d = ${values.diameter}\\ \\text{cm}$; least count $${values.d_lc}\\ \\text{cm}$.` },
+                    { title: "Part 2: Original Length & Scale", text: `The original wire length is measured with a scale of least count ${values.l_lc} cm.`, detail: `Original length $\\ell = ${values.length}\\ \\text{cm}$; least count $${values.l_lc}\\ \\text{cm}$.` },
+                    { title: "Part 3: Load Application", text: `A ${values.force} N load is applied to the wire.`, detail: `Applied load $F = ${values.force}\\ \\text{N}$ hangs from the lower terminal.` },
+                    { title: "Part 4: Extension & Micrometer", text: `The extension is ${values.extension} cm, measured by a micrometer with least count ${values.ext_lc} cm.`, detail: `Extension $\\Delta\\ell = ${values.extension}\\ \\text{cm}$; least count $${values.ext_lc}\\ \\text{cm}$.` },
+                    { title: "Given and find", givenAsked: true }
+                ];
+                const givenAskedContent = {
+                    given: [String.raw`\(d=0.08\ \mathrm{cm},\quad \text{screw-gauge least count}=0.001\ \mathrm{cm}\)`, String.raw`\(\ell=150\ \mathrm{cm},\quad \text{scale least count}=0.1\ \mathrm{cm}\)`, String.raw`\(F=100\ \mathrm{N},\quad \Delta\ell=0.5\ \mathrm{cm}\)`, String.raw`\(\text{micrometer least count}=0.001\ \mathrm{cm}\)`, "Ignore the load's contribution to the Young's-modulus error calculation"],
+                    find: String.raw`\(\Delta Y=\alpha\times10^9\ \mathrm{N/m^2}\); find \(\alpha\)`
+                };
+
+                let current = steps[appState.understandStep];
+
+                container.innerHTML = `
+                    <div class="space-y-5 animate-fade-in">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-green-400 uppercase tracking-wider">Understand Mode (Part ${appState.understandStep + 1} of ${steps.length})</span>
+                            <div class="flex space-x-1">
+                                ${steps.map((_, i) => `<div class="w-6 h-1.5 rounded-full ${i === appState.understandStep ? 'bg-green-500' : 'bg-slate-800'}"></div>`).join('')}
+                            </div>
+                        </div>
+
+                        ${current.givenAsked ? window.PYQSimulationTeaching.givenAndAsked(givenAskedContent) : `<div class="bg-slate-800/60 p-5 rounded-xl border border-slate-700/80 shadow-lg space-y-3"><h3 class="font-bold text-slate-100 text-base">${current.title}</h3><p class="text-sm text-green-300 font-medium bg-green-500/10 p-3 rounded-lg border border-green-500/30">"${current.text}"</p><p class="text-xs text-slate-300 leading-relaxed">${current.detail}</p></div>`}
+
+                        <div class="flex items-center justify-between pt-2">
+                            <button onclick="navigateUnderstand(-1)" ${appState.understandStep === 0 ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 text-xs font-semibold transition-colors">
+                                \u25c0 Previous
+                            </button>
+                            ${appState.understandStep < steps.length - 1 ? `
+                                <button onclick="navigateUnderstand(1)" class="px-5 py-2 rounded-xl bg-green-500 text-slate-950 font-semibold hover:bg-green-600 text-xs transition-colors shadow-md shadow-green-500/20">
+                                    Next \u25b6
+                                </button>
+                            ` : `
+                                <button onclick="switchMode('solve')" class="px-5 py-2 rounded-xl bg-green-500 text-slate-950 font-semibold hover:bg-green-600 text-xs transition-colors shadow-md shadow-green-500/20">
+                                    Proceed to Solve \u25b6
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            } else if (appState.mode === 'solve') {
+                const currentStepData = solutionDataForStep(appState.solveStep);
+                const totalSolveSteps = solveStepsData.length;
+                const m = currentStepData.mistake;
+
+                container.innerHTML = `
+                    <div class="space-y-5 animate-fade-in">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-green-400 uppercase tracking-wider">Solve Mode (Step ${appState.solveStep + 1} of ${totalSolveSteps})</span>
+                            <div class="flex space-x-1">
+                                ${solveStepsData.map((_, i) => `<div class="w-4 h-1.5 rounded-full ${i === appState.solveStep ? 'bg-green-500' : 'bg-slate-800'}"></div>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800/70 p-5 rounded-xl border border-slate-700/80 shadow-lg space-y-3">
+                            <h3 class="font-bold text-slate-100 text-sm text-green-300">${currentStepData.title}</h3>
+                            <div class="p-3 rounded-lg bg-slate-900 text-slate-200 font-mono-num text-xs whitespace-pre-line border border-slate-800">
+                                ${currentStepData.explanation}
+                            </div>
+                            <p class="text-xs text-slate-300">
+                                <strong class="text-slate-200">Method Note:</strong> ${currentStepData.calculation}
+                            </p>
+                        </div>
+
+                        ${window.PYQSimulationTeaching.commonStudentTrap(m)}
+
+                        <div class="flex items-center justify-between pt-3">
+                            <button onclick="navigateSolve(-1)" ${appState.solveStep === 0 ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 text-xs font-semibold transition-colors">
+                                \u25c0 Previous
+                            </button>
+                            ${appState.solveStep < totalSolveSteps - 1 ? `
+                                <button onclick="navigateSolve(1)" class="px-5 py-2 rounded-xl bg-green-500 text-slate-950 font-semibold hover:bg-green-600 text-xs transition-colors shadow-md shadow-green-500/20">
+                                    Next \u25b6
+                                </button>
+                            ` : `
+                                <button onclick="switchMode('explore')" class="px-5 py-2 rounded-xl bg-green-500 text-slate-950 font-semibold hover:bg-green-600 text-xs transition-colors shadow-md shadow-green-500/20">
+                                    Open Interactive Sandbox \u25b6
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            } else if (appState.mode === 'explore') {
+                const metrics = calculateYoungsModulusMetrics(appState.explore);
+                container.innerHTML = `
+                    <div class="space-y-5 animate-fade-in" id="exploreContainer">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-green-400 uppercase tracking-wider">Interactive Physics Sandbox</span>
+                            <button onclick="resetExploreParams()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono-num border border-slate-700 transition-colors">
+                                Reset Baseline
+                            </button>
+                        </div>
+
+                        <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between text-xs">
+                            <span class="text-slate-300 font-medium">Interaction Mode:</span>
+                            <div class="flex space-x-2">
+                                <button onclick="setExploreInputMode('force')" id="mode-btn-force" class="px-3 py-1.5 rounded-lg font-semibold transition-colors ${appState.explore.inputMode === 'force' ? 'bg-green-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-white'}">
+                                    Force Prediction
+                                </button>
+                                <button onclick="setExploreInputMode('measure')" id="mode-btn-measure" class="px-3 py-1.5 rounded-lg font-semibold transition-colors ${appState.explore.inputMode === 'measure' ? 'bg-green-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-white'}">
+                                    Direct Measurement
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700/80 space-y-4">
+                            <h4 class="font-bold text-slate-200 text-xs uppercase tracking-wider text-slate-400">Experimental Parameters</h4>
+                            
+                            <div class="space-y-3 text-xs">
+                                <div>
+                                    <div class="flex justify-between font-mono-num mb-1">
+                                        <span class="text-slate-300">Wire Diameter ($d$):</span>
+                                        <span id="val-diameter" class="text-green-400 font-bold">${appState.explore.diameter} cm</span>
+                                    </div>
+                                    <input type="range" id="slider-diameter" min="0.03" max="0.27" step="0.01" value="${appState.explore.diameter}" oninput="onExploreSliderInput('diameter', this.value)" class="w-full accent-green-500 h-1.5 bg-slate-900 rounded cursor-pointer">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between font-mono-num mb-1">
+                                        <span class="text-slate-300">Original Length ($\\ell$):</span>
+                                        <span id="val-length" class="text-green-400 font-bold">${appState.explore.length} cm</span>
+                                    </div>
+                                    <input type="range" id="slider-length" min="50" max="300" step="10" value="${appState.explore.length}" oninput="onExploreSliderInput('length', this.value)" class="w-full accent-green-500 h-1.5 bg-slate-900 rounded cursor-pointer">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between font-mono-num mb-1">
+                                        <span class="text-slate-300">Extension ($\\Delta \\ell$):</span>
+                                        <span id="val-extension" class="text-green-400 font-bold">${appState.explore.extension} cm</span>
+                                    </div>
+                                    <input type="range" id="slider-extension" min="0.1" max="2.0" step="0.05" value="${appState.explore.extension}" oninput="onExploreSliderInput('extension', this.value)" class="w-full accent-green-500 h-1.5 bg-slate-900 rounded cursor-pointer">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between font-mono-num mb-1">
+                                        <span class="text-slate-300">Load Force ($F$):</span>
+                                        <span id="val-force" class="text-green-400 font-bold">${appState.explore.force} N</span>
+                                    </div>
+                                    <input type="range" id="slider-force" min="20" max="300" step="10" value="${appState.explore.force}" oninput="onExploreSliderInput('force', this.value)" class="w-full accent-green-500 h-1.5 bg-slate-900 rounded cursor-pointer">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 space-y-3">
+                            <h4 class="font-bold text-green-400 text-xs uppercase tracking-wider">Dynamic Calculation Results</h4>
+                            
+                            <div class="grid grid-cols-2 gap-3 font-mono-num text-xs">
+                                <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700">
+                                    <div class="text-slate-400 text-[10px]">Cross-Section Area (A)</div>
+                                    <div id="res-area" class="text-slate-100 font-bold mt-0.5">${(metrics.area * 1e8).toFixed(3)} × 10⁻⁸ m²</div>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700">
+                                    <div class="text-slate-400 text-[10px]">Young's Modulus (Y)</div>
+                                    <div id="res-y" class="text-slate-100 font-bold mt-0.5">${(metrics.Y / 1e10).toFixed(2)} × 10¹⁰ N/m²</div>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700">
+                                    <div class="text-slate-400 text-[10px]">Total Relative Error</div>
+                                    <div id="res-err" class="text-slate-100 font-bold mt-0.5">${(metrics.totalRelativeError * 100).toFixed(2)}%</div>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-700">
+                                    <div class="text-slate-400 text-[10px]">Resulting Alpha (\u03b1)</div>
+                                    <div id="res-alpha" class="text-green-400 font-bold text-sm mt-0.5">${metrics.alpha.toFixed(2)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            setTimeout(renderAllMath, 50);
+        }
+
+        function onExploreSliderInput(key, val) {
+            appState.explore[key] = parseFloat(val);
+            
+            if (key === 'extension') {
+                appState.explore.inputMode = 'measure';
+                const forceBtn = document.getElementById('mode-btn-force');
+                const measBtn = document.getElementById('mode-btn-measure');
+                if (forceBtn && measBtn) {
+                    forceBtn.className = 'px-3 py-1.5 rounded-lg font-semibold transition-colors bg-slate-900 text-slate-400 hover:text-white';
+                    measBtn.className = 'px-3 py-1.5 rounded-lg font-semibold transition-colors bg-green-500 text-slate-950';
+                }
+            } else if ((key === 'force' || key === 'diameter' || key === 'length') && appState.explore.inputMode === 'force') {
+                const d_m = appState.explore.diameter * 0.01;
+                const l_m = appState.explore.length * 0.01;
+                const area = (Math.PI * Math.pow(d_m, 2)) / 4;
+                const computedExtM = (appState.explore.force * l_m) / (area * BASELINE_Y);
+                appState.explore.extension = parseFloat((computedExtM * 100).toFixed(3));
+                
+                const extSlider = document.getElementById('slider-extension');
+                const extValSpan = document.getElementById('val-extension');
+                if (extSlider) extSlider.value = appState.explore.extension;
+                if (extValSpan) extValSpan.innerText = appState.explore.extension + ' cm';
+            }
+
+            const span = document.getElementById(`val-${key}`);
+            if (span) {
+                if (key === 'force') span.innerText = appState.explore[key] + ' N';
+                else span.innerText = appState.explore[key] + ' cm';
+            }
+
+            const metrics = calculateYoungsModulusMetrics(appState.explore);
+            if (appState.explore.inputMode === 'force') {
+                appState.explore.extension = metrics.extension;
+                const extSlider = document.getElementById('slider-extension');
+                const extValSpan = document.getElementById('val-extension');
+                if (extSlider) extSlider.value = metrics.extension;
+                if (extValSpan) extValSpan.innerText = `${metrics.extension.toPrecision(4)} cm`;
+            }
+            const areaEl = document.getElementById('res-area');
+            const yEl = document.getElementById('res-y');
+            const errEl = document.getElementById('res-err');
+            const alphaEl = document.getElementById('res-alpha');
+
+            if (areaEl) areaEl.innerText = `${(metrics.area * 1e8).toFixed(3)} × 10⁻⁸ m²`;
+            if (yEl) yEl.innerText = `${(metrics.Y / 1e10).toFixed(2)} × 10¹⁰ N/m²`;
+            if (errEl) errEl.innerText = `${(metrics.totalRelativeError * 100).toFixed(2)}%`;
+            if (alphaEl) alphaEl.innerText = metrics.alpha.toFixed(2);
+        }
+
+        function setExploreInputMode(mode) {
+            appState.explore.inputMode = mode;
+            const forceBtn = document.getElementById('mode-btn-force');
+            const measBtn = document.getElementById('mode-btn-measure');
+            if (forceBtn && measBtn) {
+                if (mode === 'force') {
+                    forceBtn.className = 'px-3 py-1.5 rounded-lg font-semibold transition-colors bg-green-500 text-slate-950';
+                    measBtn.className = 'px-3 py-1.5 rounded-lg font-semibold transition-colors bg-slate-900 text-slate-400 hover:text-white';
+                    onExploreSliderInput('force', appState.explore.force);
+                } else {
+                    forceBtn.className = 'px-3 py-1.5 rounded-lg font-semibold transition-colors bg-slate-900 text-slate-400 hover:text-white';
+                    measBtn.className = 'px-3 py-1.5 rounded-lg font-semibold transition-colors bg-green-500 text-slate-950';
+                }
+            }
+        }
+
+        function navigateUnderstand(direction) {
+            appState.understandStep += direction;
+            if (appState.understandStep < 0) appState.understandStep = 0;
+            if (appState.understandStep > 4) appState.understandStep = 4;
+            appState.understandTime = 0;
+            renderConsoleContent();
+        }
+
+        function navigateSolve(direction) {
+            appState.solveStep += direction;
+            if (appState.solveStep < 0) appState.solveStep = 0;
+            if (appState.solveStep >= solveStepsData.length) appState.solveStep = solveStepsData.length - 1;
+            renderConsoleContent();
+        }
+
+        function resetExploreParams() {
+            appState.explore = {
+                diameter: engineParameters.diameterCm,
+                d_lc: engineParameters.diameterLeastCountCm,
+                length: engineParameters.lengthCm,
+                l_lc: engineParameters.lengthLeastCountCm,
+                force: engineParameters.forceN,
+                extension: engineParameters.extensionCm,
+                ext_lc: engineParameters.extensionLeastCountCm,
+                inputMode: 'force'
+            };
+            renderConsoleContent();
+        }
+
+        function closeSimulation() {
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'pyq-simulation-close' }, window.location.origin);
+            } else {
+                window.history.back();
+            }
+        }
+
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeSimulation();
+        });
+
+        window.addEventListener('load', () => {
+            simulationShell.setMetadata({
+                title: activeQuestion.topic || activeQuestion.chapter || 'Physics simulation',
+                chapter: activeQuestion.chapter || '',
+                topic: activeQuestion.topic || activeQuestion.chapter || 'Physics simulation',
+                label: metadataParts.join(' \u00b7 ') || 'Exam metadata unconfirmed'
+            });
+            resizeCanvas();
+            renderConsoleContent();
+            requestAnimationFrame(animationLoop);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>JNANI Physics | Partially Filled Capacitor</title>
+  <link rel="stylesheet" href="../css/simulation-assets.css?v=20261017-1">
+  <script src="../js/shared/simulation-tailwind-config.js"></script><script src="https://cdn.tailwindcss.com"></script>
+  <script src="../js/shared/simulation-math.js"></script><script src="../js/shared/simulation-teaching-components.js"></script>
+  <script src="../js/shared/simulation-question-data.js"></script><script src="../js/physics/parallel-plate-capacitor.js"></script>
+  <style>
+    .jnani-cap-visual{height:100%;min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:clamp(12px,3vw,32px);background:radial-gradient(#1e293b 1px,transparent 1px);background-size:24px 24px}
+    .jnani-cap-svg{width:min(100%,760px);max-height:100%;overflow:visible;transition:transform .16s}.jnani-cap-svg text{font-family:Inter,sans-serif}
+    .jnani-cap-plate{fill:#64748b;stroke:#cbd5e1;stroke-width:2}.jnani-cap-dielectric{fill:#22c55e;fill-opacity:.24;stroke:#22c55e;stroke-width:2}.jnani-cap-air{fill:#38bdf8;fill-opacity:.09;stroke:#38bdf8;stroke-dasharray:7 6;stroke-width:1.5}
+    .jnani-cap-label{fill:#e2e8f0;font-size:15px}.jnani-cap-small{fill:#94a3b8;font-size:12px}.jnani-cap-green{fill:#4ade80;font-weight:700;font-size:15px}
+    .jnani-cap-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.jnani-cap-controls label{display:grid;gap:6px;color:#cbd5e1;font-size:13px}.jnani-cap-controls input{width:100%;accent-color:#22c55e}
+    .jnani-cap-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.jnani-cap-results>div{padding:12px;border:1px solid #334155;border-radius:10px;background:#0f172a}.jnani-cap-results small{display:block;color:#94a3b8}.jnani-cap-results strong{display:block;margin-top:5px;color:#4ade80;font:600 18px 'JetBrains Mono',monospace}
+    .jnani-cap-nav{display:flex;justify-content:space-between;gap:10px;margin-top:18px}.jnani-cap-legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;color:#cbd5e1;font-size:12px}.jnani-cap-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+    .jnani-cap-diagram-wrap{width:100%;transition:transform .16s;touch-action:none;cursor:grab}.jnani-cap-diagram-wrap:active{cursor:grabbing}
+    .jnani-cap-circuit{width:min(100%,560px);padding:10px 14px;border:1px solid #334155;border-radius:10px;background:#0f172a;color:#cbd5e1;text-align:center;font-size:12px}.jnani-cap-circuit svg{display:block;width:100%;height:140px;overflow:visible}.jnani-cap-circuit path{fill:none;stroke:#94a3b8;stroke-width:2}.jnani-cap-circuit text{font:600 13px Inter,sans-serif}.jnani-cap-circuit .jnani-cap-green{fill:#4ade80}.jnani-cap-circuit .jnani-cap-air-text{fill:#38bdf8}
+    @media(max-width:640px){.jnani-cap-controls{grid-template-columns:1fr}.jnani-cap-visual{min-height:300px}.jnani-cap-results strong{font-size:15px}}
+    @media(prefers-reduced-motion:reduce){.jnani-cap-svg,.jnani-cap-diagram-wrap{transition:none}}
+  </style>
+</head>
+<body class="jnani-simulation bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+  <div id="simulation-shell-root"></div>
+  <script src="../js/shared/simulation-shell.js"></script>
+  <script src="../js/shared/simulation-view-controls.js"></script>
+  <script src="../js/simulations/parallel-plate-capacitor.js?v=20261017-3"></script>
+</body></html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JNANI Physics | Position-Dependent Motion</title>
+  <link rel="stylesheet" href="../css/simulation-assets.css?v=20261017-1">
+  <script src="../js/shared/simulation-tailwind-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../js/shared/simulation-math.js"></script>
+  <script src="../js/shared/simulation-teaching-components.js"></script>
+  <script src="../js/shared/simulation-question-data.js?v=20261017-1"></script>
+  <script src="../js/physics/position-dependent-motion.js"></script>
+  <style>
+    .jnani-pdm-visual { position:relative; display:flex; min-height:0; flex:1 1 0%; flex-direction:column; overflow:hidden; background:var(--jnani-sim-bg); }
+    .jnani-pdm-scene { min-height:0; flex:1 1 0%; }
+    .jnani-pdm-scene svg { display:block; width:100%; height:100%; min-height:320px; touch-action:none; }
+    .jnani-pdm-legend { display:flex; flex-wrap:wrap; justify-content:center; gap:7px 13px; border-top:1px solid #1e293b; background:var(--jnani-sim-panel); padding:8px 10px; color:#cbd5e1; font:var(--jnani-sim-font-xs) var(--jnani-sim-mono); }
+    .jnani-pdm-legend span { display:inline-flex; align-items:center; gap:5px; }
+    .jnani-pdm-dot { width:9px; height:9px; border-radius:50%; }
+    .jnani-pdm-readout { position:absolute; left:12px; top:12px; border:1px solid #334155; border-radius:8px; background:#0f172ae8; padding:8px 10px; color:#cbd5e1; font:11px var(--jnani-sim-mono); }
+    .jnani-pdm-readout strong { color:#22c55e; }
+    .jnani-pdm-view-controls { position:absolute; top:12px; right:12px; z-index:2; display:flex; align-items:center; gap:6px; padding:5px; border:1px solid #334155; border-radius:10px; background:#0f172ae8; }
+    .jnani-pdm-view-controls button { min-width:32px; min-height:30px; border:1px solid #475569; border-radius:6px; background:#1e293b; color:#e2e8f0; font:12px var(--jnani-sim-mono); cursor:pointer; }
+    .jnani-pdm-view-controls button:hover { border-color:#22c55e; color:#22c55e; }
+    .jnani-pdm-view-controls span { padding:0 4px; color:#94a3b8; font:10px var(--jnani-sim-mono); }
+    .jnani-pdm-scene svg { cursor:grab; }
+    .jnani-pdm-scene svg.is-dragging { cursor:grabbing; }
+    .jnani-pdm-controls { display:flex; justify-content:space-between; gap:8px; margin-top:16px; }
+    .jnani-pdm-start { width:100%; min-height:48px!important; border-radius:12px!important; box-shadow:0 10px 24px rgb(34 197 94 / 15%); font-size:14px!important; }
+    .jnani-pdm-axis { stroke:#94a3b8; stroke-width:1.2; }
+    .jnani-pdm-grid { stroke:#334155; stroke-width:.8; opacity:.48; }
+    .jnani-pdm-label { paint-order:stroke; stroke:#0b1220; stroke-width:4px; stroke-linejoin:round; font-family:Inter,sans-serif; }
+    .jnani-pdm-values { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .jnani-pdm-values > div { min-width:0; border-radius:var(--jnani-sim-radius-sm); background:var(--jnani-sim-panel); padding:9px; }
+    .jnani-pdm-values small { display:block; color:#94a3b8; font-size:10px; }
+    .jnani-pdm-values strong { display:block; margin-top:4px; color:#e2e8f0; font:11px var(--jnani-sim-mono); overflow-wrap:anywhere; }
+    .jnani-pdm-toggles { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .jnani-pdm-toggles label { display:flex; align-items:center; gap:7px; color:#cbd5e1; font-size:12px; cursor:pointer; }
+    .jnani-pdm-toggles input { accent-color:#22c55e; }
+    .jnani-pdm-meta { color:#94a3b8; font:11px var(--jnani-sim-mono); }
+    .jnani-pdm-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .jnani-pdm-statement { border:1px solid #334155; border-radius:8px; background:#1e293b; padding:10px; color:#e2e8f0; }
+    .jnani-pdm-statement b { color:#22c55e; }
+    @media (min-width:761px) and (max-width:1023px) {
+      .jnani-simulation .jnani-sim-header { flex-wrap:wrap; gap:8px; padding:9px 12px; }
+      .jnani-simulation .jnani-sim-header-main { flex:1 1 100%; }
+      .jnani-simulation .jnani-sim-header-actions { width:100%; flex-wrap:wrap; justify-content:space-between; }
+      .jnani-simulation .jnani-sim-metadata { max-width:35vw; overflow:hidden; text-overflow:ellipsis; }
+    }
+    @media(max-width:760px) { .jnani-pdm-scene svg { min-height:285px; } .jnani-pdm-values,.jnani-pdm-toggles { grid-template-columns:1fr; } .jnani-pdm-readout { font-size:10px; } .jnani-pdm-readout span { display:none; } }
+  </style>
+</head>
+<body class="jnani-simulation bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+  <div id="simulation-shell-root"></div>
+  <script src="../js/shared/simulation-shell.js"></script>
+  <script src="../js/simulations/position-dependent-motion.js?v=20261017-12"></script>
+</body>
+</html>

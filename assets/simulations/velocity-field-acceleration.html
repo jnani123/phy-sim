@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JNANI Physics | Velocity Field and Acceleration</title>
+  <link rel="stylesheet" href="../css/simulation-assets.css?v=20261017-1">
+  <script src="../js/shared/simulation-tailwind-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../js/shared/simulation-math.js"></script>
+  <script src="../js/shared/simulation-teaching-components.js"></script>
+  <script src="../js/shared/simulation-question-data.js?v=20261017-1"></script>
+  <script src="../js/physics/velocity-field-acceleration.js"></script>
+  <style>
+    .jnani-vfa-visual { position: relative; display: flex; min-height: 0; flex: 1 1 0%; flex-direction: column; overflow: hidden; background: var(--jnani-sim-bg); }
+    .jnani-vfa-scene { min-height: 0; flex: 1 1 0%; }
+    .jnani-vfa-scene svg { display: block; width: 100%; height: 100%; min-height: 320px; cursor: grab; touch-action: none; }
+    .jnani-vfa-scene svg:active { cursor: grabbing; }
+    .jnani-vfa-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; border-top: 1px solid #1e293b; background: var(--jnani-sim-panel); padding: 8px 12px; color: #cbd5e1; font: var(--jnani-sim-font-xs) var(--jnani-sim-mono); }
+    .jnani-vfa-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .jnani-vfa-legend b { color: #f1f5f9; font: 700 var(--jnani-sim-font-sm) var(--jnani-sim-mono); }
+    .jnani-vfa-swatch { width: 10px; height: 10px; border-radius: 50%; }
+    .jnani-vfa-step-controls { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; }
+    .jnani-vfa-start { width: 100%; min-height: 48px !important; border-radius: 12px !important; box-shadow: 0 10px 24px rgb(34 197 94 / 15%); font-size: 14px !important; }
+    .jnani-vfa-axis-tick { stroke: #94a3b8; stroke-width: 1; opacity: .42; }
+    .jnani-vfa-point-guide { stroke: #94a3b8; stroke-width: 1.15; stroke-dasharray: 4 5; opacity: .48; }
+    .jnani-vfa-axis-label { paint-order: stroke; stroke: var(--jnani-sim-bg); stroke-width: 4px; stroke-linejoin: round; }
+    .jnani-vfa-values { display: grid; gap: 10px; }
+    .jnani-vfa-values > div { min-width: 0; border-radius: var(--jnani-sim-radius-sm); background: var(--jnani-sim-panel); padding: 10px; }
+    .jnani-vfa-values > div[hidden] { display: none; }
+    .jnani-vfa-values small { display:block; color:#94a3b8; font-size:10px; }
+    .jnani-vfa-values strong { display:block; margin-top:4px; color:#e2e8f0; font:12px var(--jnani-sim-mono); overflow-wrap:anywhere; }
+    .jnani-vfa-values .vfa-point strong { color:var(--jnani-sim-accent); }
+    .jnani-vfa-values .vfa-position-vector strong { color:var(--jnani-sim-violet); }
+    .jnani-vfa-values .vfa-velocity strong { color:var(--jnani-sim-cyan); }
+    .jnani-vfa-values .vfa-acceleration strong { color:var(--jnani-sim-gold); }
+    .jnani-vfa-toggles { display: grid; gap: 10px; }
+    .jnani-vfa-toggles label { display:flex; align-items:center; gap:9px; color:#cbd5e1; font-size:13px; cursor:pointer; }
+    .jnani-vfa-toggles input { width:16px; height:16px; accent-color:var(--jnani-sim-accent); }
+    .jnani-vfa-toggles i { font-family:var(--jnani-sim-mono); }
+    .jnani-vfa-question-values[hidden] { display:none; }
+    .jnani-vfa-question-values .jnani-sim-card-label { margin-bottom:8px; }
+    .jnani-vfa-value-line { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:6px 0 0; color:#cbd5e1; font-size:12px; }
+    .jnani-vfa-value-line strong { color:#f1f5f9; font:12px var(--jnani-sim-mono); text-align:right; }
+    .jnani-vfa-value-line .vfa-velocity { color:var(--jnani-sim-cyan); }
+    .jnani-vfa-value-line .vfa-acceleration { color:var(--jnani-sim-gold); }
+    @media (max-width: 760px) { .jnani-vfa-scene svg { min-height: 300px; } }
+  </style>
+</head>
+<body class="jnani-simulation bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+  <div id="simulation-shell-root"></div>
+  <script src="../js/shared/simulation-shell.js"></script>
+  <script src="../js/simulations/velocity-field-acceleration.js?v=20261017-6"></script>
+</body>
+</html>
